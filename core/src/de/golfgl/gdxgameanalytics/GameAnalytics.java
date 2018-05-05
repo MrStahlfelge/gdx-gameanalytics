@@ -1,3 +1,5 @@
+package de.golfgl.gdxgameanalytics;
+
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
@@ -62,6 +64,7 @@ public class GameAnalytics {
     private List<AnnotatedEvent> queue = new ArrayList<AnnotatedEvent>();
     private boolean flushingQueue;
     private long timeStampDiscrepancy;
+    private long sessionStartTimestamp;
     private Preferences prefs;
 
     private static String generateHash(String json, String secretKey) {
@@ -78,9 +81,17 @@ public class GameAnalytics {
     }
 
     /**
-     * initializes the session. Make sure you have set all neccessary parameters before calling this
+     * initializes and starts the session. Make sure you have set all neccessary parameters before calling this
+     * This can be called but twice on an object, but it will only take effect if an ongoing session was ended before.
+     * <p>
+     * Call this on game start and on resume.
      */
-    public void initSession() {
+    public void startSession() {
+        if (sessionStartTimestamp > 0) {
+            Gdx.app.log(TAG, "No new session started. Session still ongoing");
+            return;
+        }
+
         if (game_key == null || secret_key == null)
             throw new IllegalStateException("You must set your game key and secret key");
 
@@ -109,8 +120,9 @@ public class GameAnalytics {
         loadOrInitUserStringAndSessionNum();
 
         session_id = generateSessionID();
-        createInitRequest();
-        createUserEvent();
+        sessionStartTimestamp = TimeUtils.millis();
+        submitInitRequest();
+        submitStartSessionRequest();
     }
 
     private void loadOrInitUserStringAndSessionNum() {
@@ -218,7 +230,7 @@ public class GameAnalytics {
         return sid.toString();
     }
 
-    private void createUserEvent() {
+    private void submitStartSessionRequest() {
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "user");
         synchronized (queue) {
@@ -350,20 +362,21 @@ public class GameAnalytics {
         }
     }
 
-    protected void closeSession() {
-        //FIXME needs to send the real session length
+    /**
+     * closes the ongoing session. Call this on pause
+     */
+    public void closeSession() {
         AnnotatedEvent session_end_event = new AnnotatedEvent();
         session_end_event.put("category", "session_end");
-        session_end_event.putInt("length", 60); // record locally how much time the session took and send it here. 60 is
-        // an example
-        sendEvent(session_end_event);
-
+        session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
+        submitEvent(session_end_event);
+        sessionStartTimestamp = 0;
     }
 
     /**
      * send init request
      */
-    protected void createInitRequest() {
+    protected void submitInitRequest() {
         Json json = new Json();
         json.setOutputType(JsonWriter.OutputType.json);
 
@@ -425,7 +438,7 @@ public class GameAnalytics {
         });
     }
 
-    private void sendEvent(AnnotatedEvent eventJson) {
+    private void submitEvent(AnnotatedEvent eventJson) {
         Json json = new Json();
         json.setOutputType(JsonWriter.OutputType.json);
 
@@ -533,14 +546,23 @@ public class GameAnalytics {
         this.prefs = prefs;
     }
 
+    /**
+     * @param custom1 value for custom dimension. 50 different values supported at max
+     */
     public void setCustom1(String custom1) {
         this.custom1 = custom1;
     }
 
+    /**
+     * @param custom2 value for custom dimension. 50 different values supported at max
+     */
     public void setCustom2(String custom2) {
         this.custom2 = custom2;
     }
 
+    /**
+     * @param custom3 value for custom dimension. 50 different values supported at max
+     */
     public void setCustom3(String custom3) {
         this.custom3 = custom3;
     }

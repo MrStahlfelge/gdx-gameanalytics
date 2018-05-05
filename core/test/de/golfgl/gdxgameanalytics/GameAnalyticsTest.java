@@ -1,3 +1,5 @@
+package de.golfgl.gdxgameanalytics;
+
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
@@ -7,6 +9,8 @@ import com.badlogic.gdx.graphics.GL20;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import de.golfgl.gdxgameanalytics.GameAnalytics;
 
 /**
  * Created by Benjamin Schulte on 05.05.2018.
@@ -63,9 +67,7 @@ public class GameAnalyticsTest {
         ga.setPlatformVersionString("10");
         ga.setGameBuildNumber("1");
 
-        ga.initSession();
-
-        Thread.sleep(500); // give the HTTP request some time
+        ga.startSession();
 
         //Design events
         ga.submitDesignEvent("kill:robot:blue");
@@ -77,16 +79,16 @@ public class GameAnalyticsTest {
         //CreateGenericBusinessEventGoogle("Sales", 99, "USD", 1, "Tier 1", "+Receipt+", "+signature+");
 
         //Progression events
-        ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Start, "World1", "", "");
+        ga.submitProgressionEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ProgressionStatus.Start, "World1", "", "");
         ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Fail, "World1", "Level2", "");
         ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Complete, "World2", "Level1", "Arena2", 200);
 
         //Resource events
-        //CreateResourceEvent(GameAnalytics.ResourceFlowType.Sink, "gold", "Weapon", "Frostmourne", 10000);
-        //CreateResourceEvent(GameAnalytics.ResourceFlowType.Source, "silver", "Consumable", "Mana potion", 5);
+        //CreateResourceEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ResourceFlowType.Sink, "gold", "Weapon", "Frostmourne", 10000);
+        //CreateResourceEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ResourceFlowType.Source, "silver", "Consumable", "Mana potion", 5);
 
         //Error event
-        //CreateErrorEvent(GameAnalytics.ErrorType.info, "The instrumentation runs smooth!");
+        //CreateErrorEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ErrorType.info, "The instrumentation runs smooth!");
 
         //Send all events in queue
         ga.flushQueue();
@@ -94,7 +96,7 @@ public class GameAnalyticsTest {
         //Finally close session by sending session_end event
         ga.closeSession();
 
-        Thread.sleep(1500); // give the HTTP request some time
+        Thread.sleep(1500); // give the HTTP request some time - this is needed just for Unit Tests
 
     }
 }
