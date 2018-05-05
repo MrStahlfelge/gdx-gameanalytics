@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.JsonWriter;
 import com.badlogic.gdx.utils.TimeUtils;
+import com.badlogic.gdx.utils.Timer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,13 +26,14 @@ import javax.crypto.spec.SecretKeySpec;
 public class GameAnalytics {
     private static final String TAG = "Gameanalytics";
     private final static String sdk_version = "rest api v2";
+    private static final int FLUSH_QUEUE_INTERVAL = 20;
     //sandbox game keys. Change with your game's keys when ready
     private String game_key = "5c6bcb5402204249437fb5a7a80a4959";
     private String secret_key = "16813a12f718bc5c620f56944e1abc3ea13ccbac";
     //sandbox API URLs. Change with live end-point when ready http://api.gameanalytics.com/v2/
     private String url = "http://sandbox-api.gameanalytics.com/v2/";
     //device information
-    private String platform = "libgdx";
+    private String platform = Gdx.app.getType().toString();
     private String os_version = "unknown";
     private String device = "unknown";
     private String manufacturer = "unkown";
@@ -55,6 +57,8 @@ public class GameAnalytics {
 
     //TODO maximum queue size
     private List<AnnotatedEvent> queue = new ArrayList<AnnotatedEvent>();
+    protected Timer.Task pingTask;
+    private boolean flushingQueue;
 
     private static String generateHash(String json, String secretKey) {
         try {
@@ -70,7 +74,7 @@ public class GameAnalytics {
     }
 
     protected void flushQueue() {
-        if (!canSendEvents)
+        if (!canSendEvents || flushingQueue)
             return;
 
         if (lastFailedWait > 0) {
@@ -78,15 +82,19 @@ public class GameAnalytics {
             return;
         }
 
+        flushingQueue = true;
+
         String payload = "[";
         Json json = new Json();
         json.setOutputType(JsonWriter.OutputType.json);
 
-        for (int i = 0; i < queue.size(); i++) {
-            if (i != queue.size() - 1) {
-                payload += json.toJson(queue.get(i)) + ",\n";
-            } else {
-                payload += json.toJson(queue.get(i)) + "\n";
+        synchronized (queue) {
+            for (int i = 0; i < queue.size(); i++) {
+                if (i != queue.size() - 1) {
+                    payload += json.toJson(queue.get(i)) + ",\n";
+                } else {
+                    payload += json.toJson(queue.get(i)) + "\n";
+                }
             }
         }
         payload += "]";
@@ -101,15 +109,16 @@ public class GameAnalytics {
         String hash = generateHash(payload, secret_key);
         request.setHeader("Authorization", hash);
 
-        //FIXME make sure data is not send twice (boolean flag)
-
         //Execute and read response
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
             @Override
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
-                queue.clear();
+                synchronized (queue) {
+                    queue.clear();
+                }
                 //FIXME process other status codes
                 Gdx.app.debug(TAG, request.getContent() + "\n" + httpResponse.getResultAsString());
+                flushingQueue = false;
             }
 
             @Override
@@ -125,6 +134,7 @@ public class GameAnalytics {
             private void failed() {
                 Gdx.app.error(TAG, "could not send events in queue.");
                 addLastFailed();
+                flushingQueue = false;
             }
         });
     }
@@ -143,7 +153,9 @@ public class GameAnalytics {
         AnnotatedEvent event = new AnnotatedEvent();
         category = EventCategory.user;
         event.put("category", category.toString());
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     public void submitDesignEvent(String event_id) {
@@ -151,7 +163,9 @@ public class GameAnalytics {
         category = EventCategory.design;
         event.put("category", category.toString());
         event.put("event_id", event_id);
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     public void submitDesignEvent(String event_id, float amount) {
@@ -160,7 +174,9 @@ public class GameAnalytics {
         event.put("category", category.toString());
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     private void createGenericBusinessEvent(String event_id, int amount, String currency, int transaction_num) {
@@ -171,7 +187,9 @@ public class GameAnalytics {
         event.putInt("amount", amount);
         event.put("currency", currency);
         event.putInt("transaction_num", transaction_num);
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     private void createGenericBusinessEventGoogle(String event_id, int amount, String currency, int
@@ -191,7 +209,9 @@ public class GameAnalytics {
         //receipt_info.put("receipt", receipt);
         //receipt_info.put("signature", signature);
         //event.put("receipt_info", receipt_info);
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
@@ -214,7 +234,9 @@ public class GameAnalytics {
             // status fail.
             event.putInt("attempt_num", attempt_num);
         }
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
@@ -238,7 +260,9 @@ public class GameAnalytics {
             event.putInt("attempt_num", attempt_num);
             event.putInt("score", score);
         }
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     private void createResourceEvent(ResourceFlowType flowType, String virtualCurrency, String itemType,
@@ -250,7 +274,9 @@ public class GameAnalytics {
         String event_id = flowType.toString() + ":" + virtualCurrency + ":" + itemType + ":" + itemId;
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     private void createErrorEvent(ErrorType severity, String message) {
@@ -259,7 +285,9 @@ public class GameAnalytics {
         event.put("category", category.toString());
         event.put("severity", severity.toString());
         event.put("message", message);
-        queue.add(event);
+        synchronized (queue) {
+            queue.add(event);
+        }
     }
 
     protected void closeSession() {
@@ -297,6 +325,15 @@ public class GameAnalytics {
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
                 canSendEvents = httpResponse.getStatus().getStatusCode() == 200;
                 Gdx.app.debug(TAG, request.getContent() + "\n" + httpResponse.getResultAsString());
+
+                if (canSendEvents) {
+                    pingTask = Timer.schedule(new Timer.Task() {
+                        @Override
+                        public void run() {
+                            flushQueue();
+                        }
+                    }, FLUSH_QUEUE_INTERVAL, FLUSH_QUEUE_INTERVAL);
+                }
             }
 
             @Override
