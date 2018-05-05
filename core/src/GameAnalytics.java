@@ -1,6 +1,7 @@
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.utils.Base64Coder;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonReader;
@@ -45,11 +46,9 @@ public class GameAnalytics {
     //game information
     private String build;
     //user information
-    //FIXME load and calc
-    private String user_id = "AEBE52E7-03EE-455A-B3C4-E57283966239"; //example
+    private String user_id = null;
     private String session_id;
-    //FIXME load and calc
-    private int session_num = 5;
+    private int session_num = 0;
     //SDK status
     private boolean canSendEvents = false;
     private int lastFailedWait = 0;
@@ -57,6 +56,7 @@ public class GameAnalytics {
     private List<AnnotatedEvent> queue = new ArrayList<AnnotatedEvent>();
     private boolean flushingQueue;
     private long timeStampDiscrepancy;
+    private Preferences prefs;
 
     private static String generateHash(String json, String secretKey) {
         try {
@@ -68,6 +68,64 @@ public class GameAnalytics {
         } catch (Exception ex) {
             Gdx.app.error(TAG, "Error generating Hmac: " + ex.toString());
             return "";
+        }
+    }
+
+    /**
+     * initializes the session. Make sure you have set all neccessary parameters before calling this
+     */
+    public void initSession() {
+        if (game_key == null || secret_key == null)
+            throw new IllegalStateException("You must set your game key and secret key");
+
+        if (platform == null) {
+            Application.ApplicationType type = Gdx.app.getType();
+            switch (type) {
+                case Android:
+                    setPlatform(Platform.Android);
+                case WebGL:
+                    setPlatform(Platform.WebGL);
+                default:
+                    throw new IllegalStateException("You need to set a platform");
+            }
+
+        }
+        if (os_version == null)
+            throw new IllegalStateException("You need to set a os version");
+
+        if (!os_version.startsWith(platform)) {
+            os_version = platform + " " + os_version;
+        }
+
+        if (prefs == null)
+            Gdx.app.log(TAG, "You did not set up preferences. Session and user tracking will not work without it");
+
+        loadOrInitUserStringAndSessionNum();
+
+        session_id = generateSessionID();
+        createInitRequest();
+        createUserEvent();
+    }
+
+    private void loadOrInitUserStringAndSessionNum() {
+        if (prefs != null) {
+            user_id = prefs.getString("ga_userid", null);
+            session_num = prefs.getInteger("ga_sessionnum", 0);
+        }
+
+        if (user_id == null) {
+            Gdx.app.log(TAG, "No user id found. Generating a new one");
+            user_id = UUID.randomUUID().toString();
+
+            if (prefs != null)
+                prefs.putString("ga_userid", user_id);
+        }
+
+        session_num++;
+
+        if (prefs != null) {
+            prefs.putInteger("ga_sessionnum", session_num);
+            prefs.flush();
         }
     }
 
@@ -114,7 +172,7 @@ public class GameAnalytics {
                 synchronized (queue) {
                     queue.clear();
                 }
-                //FIXME process other status codes
+
                 int statusCode = httpResponse.getStatus().getStatusCode();
                 String resultAsString = httpResponse.getResultAsString();
 
@@ -203,7 +261,7 @@ public class GameAnalytics {
         event.putInt("transaction_num", transaction_num);
         event.put("cart_type", cart_type);
 
-        // TODO
+        // FIXME createGenericBusinessEventGoogle
         //receipt
         //JSONObject receipt_info = new JSONObject();
         //receipt_info.put("receipt", receipt);
@@ -407,34 +465,6 @@ public class GameAnalytics {
         return canSendEvents;
     }
 
-    public void initSession() {
-        if (game_key == null || secret_key == null)
-            throw new IllegalStateException("You must set your game key and secret key");
-
-        if (platform == null) {
-            Application.ApplicationType type = Gdx.app.getType();
-            switch (type) {
-                case Android:
-                    setPlatform(Platform.Android);
-                case WebGL:
-                    setPlatform(Platform.WebGL);
-                default:
-                    throw new IllegalStateException("You need to set a platform");
-            }
-
-        }
-        if (os_version == null)
-            throw new IllegalStateException("You need to set a os version");
-
-        if (!os_version.startsWith(platform)) {
-            os_version = platform + " " + os_version;
-        }
-
-        session_id = generateSessionID();
-        createInitRequest();
-        createUserEvent();
-    }
-
     public void setGameKey(String gamekey) {
         this.game_key = gamekey;
     }
@@ -476,8 +506,16 @@ public class GameAnalytics {
 
     ;
 
-    public enum ProgressionStatus {Start, Fail, Complete}
+    /**
+     * @param prefs your game's preferences. Needed to save user id and session information. All settings will be
+     *              saved with "ga_" prefix to not interphere with your other settings
+     */
+    public void setPrefs(Preferences prefs) {
+        this.prefs = prefs;
+    }
 
+
+    public enum ProgressionStatus {Start, Fail, Complete}
 
     public enum ResourceFlowType {Sink, Source}
 
