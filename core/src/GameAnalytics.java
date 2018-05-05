@@ -24,6 +24,8 @@ import javax.crypto.spec.SecretKeySpec;
  * <p>
  * Created by Benjamin Schulte on 05.05.2018 based up on example implementation
  * https://s3.amazonaws.com/download.gameanalytics.com/examples/GameAnalytics+REST+API+example.java
+ * <p>
+ * (That's the reason why this code looks like made by a server dev - it acutally is. Improvements welcome)
  */
 
 public class GameAnalytics {
@@ -38,7 +40,7 @@ public class GameAnalytics {
     private String game_key = null;
     private String secret_key = null;
 
-    //device information
+    //dimension information
     private String platform = null;
     private String os_version = null;
     private String device = "unknown";
@@ -49,6 +51,10 @@ public class GameAnalytics {
     private String user_id = null;
     private String session_id;
     private int session_num = 0;
+    private String custom1;
+    private String custom2;
+    private String custom3;
+
     //SDK status
     private boolean canSendEvents = false;
     private int lastFailedWait = 0;
@@ -345,6 +351,7 @@ public class GameAnalytics {
     }
 
     protected void closeSession() {
+        //FIXME needs to send the real session length
         AnnotatedEvent session_end_event = new AnnotatedEvent();
         session_end_event.put("category", "session_end");
         session_end_event.putInt("length", 60); // record locally how much time the session took and send it here. 60 is
@@ -469,11 +476,9 @@ public class GameAnalytics {
         this.game_key = gamekey;
     }
 
-    public void setSecretKey(String secretkey) {
+    public void setGameSecretKey(String secretkey) {
         this.secret_key = secretkey;
     }
-
-    ;
 
     public void setPlatform(Platform platform) {
         switch (platform) {
@@ -504,7 +509,21 @@ public class GameAnalytics {
         this.os_version = os_version;
     }
 
-    ;
+    /**
+     * @param build buildnumber of your game. This is a string, so you can also add build type information
+     *              (e.g. "1818_debug", "1205_amazon", "1.5_tv")
+     */
+    public void setGameBuildNumber(String build) {
+        this.build = build;
+    }
+
+    public void setDevice(String device) {
+        this.device = device;
+    }
+
+    public void setManufacturer(String manufacturer) {
+        this.manufacturer = manufacturer;
+    }
 
     /**
      * @param prefs your game's preferences. Needed to save user id and session information. All settings will be
@@ -514,6 +533,17 @@ public class GameAnalytics {
         this.prefs = prefs;
     }
 
+    public void setCustom1(String custom1) {
+        this.custom1 = custom1;
+    }
+
+    public void setCustom2(String custom2) {
+        this.custom2 = custom2;
+    }
+
+    public void setCustom3(String custom3) {
+        this.custom3 = custom3;
+    }
 
     public enum ProgressionStatus {Start, Fail, Complete}
 
@@ -561,9 +591,19 @@ public class GameAnalytics {
             if (build != null)
                 event.writeValue("build", build);
             event.writeValue("user_id", user_id);
+            event.writeValue("v", 2);
+            if (custom1 != null)
+                event.writeValue("custom_01", custom1);
+            if (custom2 != null)
+                event.writeValue("custom_02", custom2);
+            if (custom3 != null)
+                event.writeValue("custom_03", custom3);
+
+            //TODO use session num and id from this object to support flushing queue entries from last session
             event.writeValue("session_id", session_id);
             event.writeValue("session_num", session_num);
-            event.writeValue("v", 2);
+
+            //TODO custom fields
 
             for (String key : keyValues.keySet()) {
                 event.writeValue(key, keyValues.get(key));

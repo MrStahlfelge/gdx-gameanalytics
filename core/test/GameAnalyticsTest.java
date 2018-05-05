@@ -57,10 +57,11 @@ public class GameAnalyticsTest {
 
         ga.url = GameAnalytics.URL_SANDBOX;
         ga.setGameKey(KEY_SANDBOX_GAME);
-        ga.setSecretKey(KEY_SANDBOX_SECRET);
+        ga.setGameSecretKey(KEY_SANDBOX_SECRET);
 
         ga.setPlatform(GameAnalytics.Platform.Windows);
         ga.setPlatformVersionString("10");
+        ga.setGameBuildNumber("1");
 
         ga.initSession();
 
