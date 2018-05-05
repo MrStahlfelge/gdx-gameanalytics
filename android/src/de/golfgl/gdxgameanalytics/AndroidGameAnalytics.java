@@ -8,7 +8,7 @@ import android.os.Build;
  * Created by Benjamin Schulte on 05.05.2018.
  */
 
-public class AndroidGameAnalytics extends de.golfgl.gdxgameanalytics.GameAnalytics {
+public class AndroidGameAnalytics extends GameAnalytics {
     @Override
     public void startSession() {
         setPlatform(Platform.Android);

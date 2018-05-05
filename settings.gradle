@@ -1,4 +1,4 @@
 include ':android'
 include ':core'
-include ':desktop'
+include ':java'
 include ':html'

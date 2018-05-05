@@ -59,6 +59,7 @@ project(":android") {
 
     dependencies {
         compile project(':core')
+        compile project(':java')
         compile "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
 
     }
@@ -97,7 +98,7 @@ project(":core") {
 
 
 
-project(":desktop") {
+project(":java") {
     apply plugin: 'java'
 
     apply from: '../publish.gradle'
@@ -109,7 +110,7 @@ project(":desktop") {
 
     eclipse {
         project {
-            name = appName + "-desktop"
+            name = appName + "-java"
         }
     }
 

@@ -4,12 +4,10 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Preferences;
-import com.badlogic.gdx.utils.Base64Coder;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.JsonWriter;
-import com.badlogic.gdx.utils.SharedLibraryLoader;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.Timer;
 
@@ -17,10 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Gameanalytics.com client for libGDX
@@ -33,7 +27,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class GameAnalytics {
     protected static final String URL_SANDBOX = "http://sandbox-api.gameanalytics.com/v2/";
-    private static final String TAG = "Gameanalytics";
+    protected static final String TAG = "Gameanalytics";
     private final static String sdk_version = "rest api v2";
     private static final int FLUSH_QUEUE_INTERVAL = 20;
     private static final String URL_GAMEANALYTICS = "https://api.gameanalytics.com/v2/";
@@ -68,19 +62,6 @@ public class GameAnalytics {
     private long sessionStartTimestamp;
     private Preferences prefs;
 
-    private static String generateHash(String json, String secretKey) {
-        try {
-            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-            byte[] encoded = secretKey.getBytes();
-            SecretKeySpec secretKeySpec = new SecretKeySpec(encoded, "HmacSHA256");
-            sha256_HMAC.init(secretKeySpec);
-            return new String(Base64Coder.encode(sha256_HMAC.doFinal(json.getBytes())));
-        } catch (Exception ex) {
-            Gdx.app.error(TAG, "Error generating Hmac: " + ex.toString());
-            return "";
-        }
-    }
-
     /**
      * initializes and starts the session. Make sure you have set all neccessary parameters before calling this
      * This can be called but twice on an object, but it will only take effect if an ongoing session was ended before.
@@ -96,29 +77,9 @@ public class GameAnalytics {
         if (game_key == null || secret_key == null)
             throw new IllegalStateException("You must set your game key and secret key");
 
-        if (platform == null) {
-            Application.ApplicationType type = Gdx.app.getType();
-            switch (type) {
-                case Android:
-                    setPlatform(Platform.Android);
-                    break;
-                case WebGL:
-                    setPlatform(Platform.WebGL);
-                    break;
-                default:
-                    if (SharedLibraryLoader.isWindows)
-                        setPlatform(Platform.Windows);
-                    else if (SharedLibraryLoader.isLinux)
-                        setPlatform(Platform.Linux);
-                    else if (SharedLibraryLoader.isIos)
-                        setPlatform(Platform.iOS);
-                    else if (SharedLibraryLoader.isMac)
-                        setPlatform(Platform.MacOS);
-                    else
-                        throw new IllegalStateException("You need to set a platform");
-            }
+        if (platform == null)
+            setPlatform(GwtIncompatibleStuff.getDefaultPlatform(Gdx.app.getType()));
 
-        }
         if (os_version == null)
             throw new IllegalStateException("You need to set a os version");
 
@@ -131,8 +92,9 @@ public class GameAnalytics {
 
         loadOrInitUserStringAndSessionNum();
 
-        session_id = generateSessionID();
+        session_id = GwtIncompatibleStuff.generateUuid();
         sessionStartTimestamp = TimeUtils.millis();
+
         submitInitRequest();
         submitStartSessionRequest();
     }
@@ -145,7 +107,7 @@ public class GameAnalytics {
 
         if (user_id == null) {
             Gdx.app.log(TAG, "No user id found. Generating a new one.");
-            user_id = UUID.randomUUID().toString();
+            user_id = GwtIncompatibleStuff.generateUuid();
 
             if (prefs != null)
                 prefs.putString("ga_userid", user_id);
@@ -192,7 +154,7 @@ public class GameAnalytics {
         request.setHeader("Content-type", "application/json");
 
         // authorization
-        String hash = generateHash(payload, secret_key);
+        String hash = GwtIncompatibleStuff.generateHash(payload, secret_key);
         request.setHeader("Authorization", hash);
 
         //Execute and read response
@@ -235,11 +197,6 @@ public class GameAnalytics {
     private void addLastFailed() {
         lastFailedWait = Math.max(lastFailedWait * 2, 2);
         lastFailedWait = Math.min(15, lastFailedWait);
-    }
-
-    private String generateSessionID() {
-        UUID sid = UUID.randomUUID();
-        return sid.toString();
     }
 
     private void submitStartSessionRequest() {
@@ -381,7 +338,7 @@ public class GameAnalytics {
      */
     public void closeSession() {
         if (sessionStartTimestamp > 0 && canSendEvents) {
-
+            //TODO queue should get flushed here
             AnnotatedEvent session_end_event = new AnnotatedEvent();
             session_end_event.put("category", "session_end");
             session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
@@ -406,7 +363,7 @@ public class GameAnalytics {
         request.setHeader("Content-type", "application/json");
 
         // authorization
-        String hash = generateHash(event, secret_key);
+        String hash = GwtIncompatibleStuff.generateHash(event, secret_key);
         request.setHeader("Authorization", hash);
 
         canSendEvents = false;
@@ -468,7 +425,7 @@ public class GameAnalytics {
         request.setHeader("Content-type", "application/json");
 
         // authorization
-        String hash = generateHash(event, secret_key);
+        String hash = GwtIncompatibleStuff.generateHash(event, secret_key);
         request.setHeader("Authorization", hash);
 
         //Execute and read response

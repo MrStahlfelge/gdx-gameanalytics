@@ -10,8 +10,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import de.golfgl.gdxgameanalytics.GameAnalytics;
-
 /**
  * Created by Benjamin Schulte on 05.05.2018.
  */
@@ -79,7 +77,7 @@ public class GameAnalyticsTest {
         //CreateGenericBusinessEventGoogle("Sales", 99, "USD", 1, "Tier 1", "+Receipt+", "+signature+");
 
         //Progression events
-        ga.submitProgressionEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ProgressionStatus.Start, "World1", "", "");
+        ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Start, "World1", "", "");
         ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Fail, "World1", "Level2", "");
         ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Complete, "World2", "Level1", "Arena2", 200);
 
