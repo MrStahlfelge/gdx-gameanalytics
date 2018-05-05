@@ -105,7 +105,7 @@ public class GameAnalytics {
             session_num = prefs.getInteger("ga_sessionnum", 0);
         }
 
-        if (user_id == null) {
+        if (user_id == null || user_id.isEmpty()) {
             Gdx.app.log(TAG, "No user id found. Generating a new one.");
             user_id = GwtIncompatibleStuff.generateUuid();
 
@@ -122,7 +122,7 @@ public class GameAnalytics {
     }
 
     protected void flushQueue() {
-        if (!canSendEvents || flushingQueue)
+        if (!canSendEvents || flushingQueue || queue.size() == 0)
             return;
 
         if (lastFailedWait > 0) {

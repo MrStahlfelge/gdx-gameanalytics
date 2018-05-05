@@ -8,13 +8,20 @@ import com.badlogic.gdx.Application;
 
 public class GwtIncompatibleStuff {
 
-    protected static String generateHash(String json, String secretKey) {
-        return "";
-    }
+    // https://github.com/bitwiseshiftleft/sjcl/
+    protected native static String generateHash(String json, String secretKey) /*-{
+        hmac = new $wnd.sjcl.misc.hmac($wnd.sjcl.codec.utf8String.toBits(secretKey), $wnd.sjcl.hash.sha256);
+        return $wnd.sjcl.codec.base64.fromBits(hmac.encrypt(json));
+    }-*/;
 
-    protected static String generateUuid() {
-        return "";
-    }
+    protected native static String generateUuid() /*-{
+     function s4() {
+        return $wnd.Math.floor((1 + $wnd.Math.random()) * 0x10000)
+          .toString(16)
+         .substring(1);
+     }
+     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    }-*/;
 
     protected static GameAnalytics.Platform getDefaultPlatform(Application.ApplicationType type) {
         return GameAnalytics.Platform.WebGL;
