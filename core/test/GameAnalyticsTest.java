@@ -12,6 +12,8 @@ import org.mockito.Mockito;
  * Created by Benjamin Schulte on 05.05.2018.
  */
 public class GameAnalyticsTest {
+    private static final String KEY_SANDBOX_GAME = "5c6bcb5402204249437fb5a7a80a4959";
+    private static final String KEY_SANDBOX_SECRET = "16813a12f718bc5c620f56944e1abc3ea13ccbac";
 
     @BeforeClass
     public static void init() {
@@ -52,6 +54,10 @@ public class GameAnalyticsTest {
     @Test
     public void testGameAnalytics() throws InterruptedException {
         GameAnalytics ga = new GameAnalytics();
+
+        ga.url = GameAnalytics.URL_SANDBOX;
+        ga.setGameKey(KEY_SANDBOX_GAME);
+        ga.setSecretKey(KEY_SANDBOX_SECRET);
 
         ga.setPlatform(GameAnalytics.Platform.Windows);
         ga.setPlatformVersionString("10");

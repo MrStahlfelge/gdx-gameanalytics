@@ -26,15 +26,17 @@ import javax.crypto.spec.SecretKeySpec;
  */
 
 public class GameAnalytics {
+    protected static final String URL_SANDBOX = "http://sandbox-api.gameanalytics.com/v2/";
     private static final String TAG = "Gameanalytics";
     private final static String sdk_version = "rest api v2";
     private static final int FLUSH_QUEUE_INTERVAL = 20;
+    private static final String URL_GAMEANALYTICS = "https://api.gameanalytics.com/v2/";
     protected Timer.Task pingTask;
-    //sandbox game keys. Change with your game's keys when ready
-    private String game_key = "5c6bcb5402204249437fb5a7a80a4959";
-    private String secret_key = "16813a12f718bc5c620f56944e1abc3ea13ccbac";
-    //sandbox API URLs. Change with live end-point when ready http://api.gameanalytics.com/v2/
-    private String url = "http://sandbox-api.gameanalytics.com/v2/";
+
+    protected String url = URL_GAMEANALYTICS;
+    private String game_key = null;
+    private String secret_key = null;
+
     //device information
     private String platform = null;
     private String os_version = null;
@@ -406,6 +408,9 @@ public class GameAnalytics {
     }
 
     public void initSession() {
+        if (game_key == null || secret_key == null)
+            throw new IllegalStateException("You must set your game key and secret key");
+
         if (platform == null) {
             Application.ApplicationType type = Gdx.app.getType();
             switch (type) {
@@ -430,12 +435,12 @@ public class GameAnalytics {
         createUserEvent();
     }
 
-    public void setGame_key(String game_key) {
-        this.game_key = game_key;
+    public void setGameKey(String gamekey) {
+        this.game_key = gamekey;
     }
 
-    public void setSecret_key(String secret_key) {
-        this.secret_key = secret_key;
+    public void setSecretKey(String secretkey) {
+        this.secret_key = secretkey;
     }
 
     ;
