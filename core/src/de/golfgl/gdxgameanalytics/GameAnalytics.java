@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.JsonWriter;
+import com.badlogic.gdx.utils.SharedLibraryLoader;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.Timer;
 
@@ -100,10 +101,21 @@ public class GameAnalytics {
             switch (type) {
                 case Android:
                     setPlatform(Platform.Android);
+                    break;
                 case WebGL:
                     setPlatform(Platform.WebGL);
+                    break;
                 default:
-                    throw new IllegalStateException("You need to set a platform");
+                    if (SharedLibraryLoader.isWindows)
+                        setPlatform(Platform.Windows);
+                    else if (SharedLibraryLoader.isLinux)
+                        setPlatform(Platform.Linux);
+                    else if (SharedLibraryLoader.isIos)
+                        setPlatform(Platform.iOS);
+                    else if (SharedLibraryLoader.isMac)
+                        setPlatform(Platform.MacOS);
+                    else
+                        throw new IllegalStateException("You need to set a platform");
             }
 
         }
@@ -132,7 +144,7 @@ public class GameAnalytics {
         }
 
         if (user_id == null) {
-            Gdx.app.log(TAG, "No user id found. Generating a new one");
+            Gdx.app.log(TAG, "No user id found. Generating a new one.");
             user_id = UUID.randomUUID().toString();
 
             if (prefs != null)
@@ -363,14 +375,19 @@ public class GameAnalytics {
     }
 
     /**
-     * closes the ongoing session. Call this on pause
+     * closes the ongoing session. Call this on your game's pause() method
+     * <p>
+     * This is failsafe - if no session is open, nothing is done
      */
     public void closeSession() {
-        AnnotatedEvent session_end_event = new AnnotatedEvent();
-        session_end_event.put("category", "session_end");
-        session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
-        submitEvent(session_end_event);
-        sessionStartTimestamp = 0;
+        if (sessionStartTimestamp > 0 && canSendEvents) {
+
+            AnnotatedEvent session_end_event = new AnnotatedEvent();
+            session_end_event.put("category", "session_end");
+            session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
+            submitEvent(session_end_event);
+            sessionStartTimestamp = 0;
+        }
     }
 
     /**
@@ -410,7 +427,7 @@ public class GameAnalytics {
                         JsonValue response = new JsonReader().parse(resultAsString);
                         long serverTimestamp = response.getLong("server_ts") * 1000L;
                         timeStampDiscrepancy = serverTimestamp - TimeUtils.millis();
-                        Gdx.app.log(TAG, "Successfuly initialized. Time stamp discrepancy in ms: " +
+                        Gdx.app.log(TAG, "Session open. Time stamp discrepancy in ms: " +
                                 timeStampDiscrepancy);
                     } catch (Exception e) {
                         // do nothing
@@ -493,6 +510,10 @@ public class GameAnalytics {
         this.secret_key = secretkey;
     }
 
+    public String getPlatform() {
+        return platform;
+    }
+
     public void setPlatform(Platform platform) {
         switch (platform) {
             case Windows:
@@ -516,10 +537,16 @@ public class GameAnalytics {
         }
     }
 
-    ;
+    public String getPlatformVersionString() {
+        return os_version;
+    }
 
     public void setPlatformVersionString(String os_version) {
         this.os_version = os_version;
+    }
+
+    public String getGameBuildNumber() {
+        return build;
     }
 
     /**
