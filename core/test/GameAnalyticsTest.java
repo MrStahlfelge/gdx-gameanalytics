@@ -53,6 +53,9 @@ public class GameAnalyticsTest {
     public void testGameAnalytics() throws InterruptedException {
         GameAnalytics ga = new GameAnalytics();
 
+        ga.setPlatform(GameAnalytics.Platform.Windows);
+        ga.setPlatformVersionString("10");
+
         ga.initSession();
 
         Thread.sleep(500); // give the HTTP request some time

@@ -1,7 +1,9 @@
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.utils.Base64Coder;
 import com.badlogic.gdx.utils.Json;
+import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.JsonWriter;
 import com.badlogic.gdx.utils.TimeUtils;
@@ -27,38 +29,32 @@ public class GameAnalytics {
     private static final String TAG = "Gameanalytics";
     private final static String sdk_version = "rest api v2";
     private static final int FLUSH_QUEUE_INTERVAL = 20;
+    protected Timer.Task pingTask;
     //sandbox game keys. Change with your game's keys when ready
     private String game_key = "5c6bcb5402204249437fb5a7a80a4959";
     private String secret_key = "16813a12f718bc5c620f56944e1abc3ea13ccbac";
     //sandbox API URLs. Change with live end-point when ready http://api.gameanalytics.com/v2/
     private String url = "http://sandbox-api.gameanalytics.com/v2/";
     //device information
-    private String platform = Gdx.app.getType().toString();
-    private String os_version = "unknown";
+    private String platform = null;
+    private String os_version = null;
     private String device = "unknown";
     private String manufacturer = "unkown";
-
     //game information
     private String build;
-
     //user information
     //FIXME load and calc
     private String user_id = "AEBE52E7-03EE-455A-B3C4-E57283966239"; //example
     private String session_id;
     //FIXME load and calc
     private int session_num = 5;
-
-    //event category
-    private EventCategory category;
-
     //SDK status
     private boolean canSendEvents = false;
     private int lastFailedWait = 0;
-
     //TODO maximum queue size
     private List<AnnotatedEvent> queue = new ArrayList<AnnotatedEvent>();
-    protected Timer.Task pingTask;
     private boolean flushingQueue;
+    private long timeStampDiscrepancy;
 
     private static String generateHash(String json, String secretKey) {
         try {
@@ -68,7 +64,7 @@ public class GameAnalytics {
             sha256_HMAC.init(secretKeySpec);
             return new String(Base64Coder.encode(sha256_HMAC.doFinal(json.getBytes())));
         } catch (Exception ex) {
-            System.out.println("Error generating Hmac: " + ex.toString());
+            Gdx.app.error(TAG, "Error generating Hmac: " + ex.toString());
             return "";
         }
     }
@@ -117,7 +113,14 @@ public class GameAnalytics {
                     queue.clear();
                 }
                 //FIXME process other status codes
-                Gdx.app.debug(TAG, request.getContent() + "\n" + httpResponse.getResultAsString());
+                int statusCode = httpResponse.getStatus().getStatusCode();
+                String resultAsString = httpResponse.getResultAsString();
+
+                if (statusCode == 200)
+                    Gdx.app.debug(TAG, request.getContent() + "\n" + statusCode + " " + resultAsString);
+                else
+                    Gdx.app.error(TAG, "Could not submit events: " + statusCode + " " + resultAsString);
+
                 flushingQueue = false;
             }
 
@@ -151,8 +154,7 @@ public class GameAnalytics {
 
     private void createUserEvent() {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.user;
-        event.put("category", category.toString());
+        event.put("category", "user");
         synchronized (queue) {
             queue.add(event);
         }
@@ -160,8 +162,7 @@ public class GameAnalytics {
 
     public void submitDesignEvent(String event_id) {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.design;
-        event.put("category", category.toString());
+        event.put("category", "design");
         event.put("event_id", event_id);
         synchronized (queue) {
             queue.add(event);
@@ -170,8 +171,7 @@ public class GameAnalytics {
 
     public void submitDesignEvent(String event_id, float amount) {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.design;
-        event.put("category", category.toString());
+        event.put("category", "design");
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
         synchronized (queue) {
@@ -181,8 +181,7 @@ public class GameAnalytics {
 
     private void createGenericBusinessEvent(String event_id, int amount, String currency, int transaction_num) {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.business;
-        event.put("category", category.toString());
+        event.put("category", "business");
         event.put("event_id", event_id);
         event.putInt("amount", amount);
         event.put("currency", currency);
@@ -195,8 +194,7 @@ public class GameAnalytics {
     private void createGenericBusinessEventGoogle(String event_id, int amount, String currency, int
             transaction_num, String cart_type, String receipt, String signature) {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.business;
-        event.put("category", category.toString());
+        event.put("category", "business");
         event.put("event_id", event_id);
         event.putInt("amount", amount);
         event.put("currency", currency);
@@ -217,8 +215,7 @@ public class GameAnalytics {
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
                                        String progression03) {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.progression;
-        event.put("category", category.toString());
+        event.put("category", "progression");
 
         String event_id = status.toString() + ":" + progression01;
         if (progression02.length() > 0) {
@@ -242,8 +239,7 @@ public class GameAnalytics {
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
                                        String progression03, int score) {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.progression;
-        event.put("category", category.toString());
+        event.put("category", "progression");
 
         String event_id = status.toString() + ":" + progression01;
         if (progression02.length() > 0) {
@@ -268,8 +264,7 @@ public class GameAnalytics {
     private void createResourceEvent(ResourceFlowType flowType, String virtualCurrency, String itemType,
                                      String itemId, float amount) {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.resource;
-        event.put("category", category.toString());
+        event.put("category", "resource");
 
         String event_id = flowType.toString() + ":" + virtualCurrency + ":" + itemType + ":" + itemId;
         event.put("event_id", event_id);
@@ -281,8 +276,7 @@ public class GameAnalytics {
 
     private void createErrorEvent(ErrorType severity, String message) {
         AnnotatedEvent event = new AnnotatedEvent();
-        category = EventCategory.error;
-        event.put("category", category.toString());
+        event.put("category", "error");
         event.put("severity", severity.toString());
         event.put("message", message);
         synchronized (queue) {
@@ -292,8 +286,7 @@ public class GameAnalytics {
 
     protected void closeSession() {
         AnnotatedEvent session_end_event = new AnnotatedEvent();
-        category = EventCategory.session_end;
-        session_end_event.put("category", category.toString());
+        session_end_event.put("category", "session_end");
         session_end_event.putInt("length", 60); // record locally how much time the session took and send it here. 60 is
         // an example
         sendEvent(session_end_event);
@@ -319,14 +312,31 @@ public class GameAnalytics {
         String hash = generateHash(event, secret_key);
         request.setHeader("Authorization", hash);
 
+        canSendEvents = false;
+        timeStampDiscrepancy = 0;
+
         //Execute and read response
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
             @Override
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
                 canSendEvents = httpResponse.getStatus().getStatusCode() == 200;
-                Gdx.app.debug(TAG, request.getContent() + "\n" + httpResponse.getResultAsString());
+                String resultAsString = httpResponse.getResultAsString();
 
+                Gdx.app.debug(TAG, request.getContent() + "\n" +
+                        httpResponse.getStatus().getStatusCode() + " " + resultAsString);
                 if (canSendEvents) {
+                    // calculate the client's time stamp discrepancy
+                    try {
+                        JsonValue response = new JsonReader().parse(resultAsString);
+                        long serverTimestamp = response.getLong("server_ts") * 1000L;
+                        timeStampDiscrepancy = serverTimestamp - TimeUtils.millis();
+                        Gdx.app.log(TAG, "Successfuly initialized. Time stamp discrepancy in ms: " +
+                                timeStampDiscrepancy);
+                    } catch (Exception e) {
+                        // do nothing
+                    }
+
+                    // add automated task to flush the qeue every 20 seconds
                     pingTask = Timer.schedule(new Timer.Task() {
                         @Override
                         public void run() {
@@ -368,7 +378,8 @@ public class GameAnalytics {
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
             @Override
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
-                Gdx.app.debug(TAG, request.getContent() + "\n" + httpResponse.getResultAsString());
+                Gdx.app.debug(TAG, request.getContent() + "\n" +
+                        httpResponse.getStatus().getStatusCode() + " " + httpResponse.getResultAsString());
             }
 
             @Override
@@ -395,24 +406,85 @@ public class GameAnalytics {
     }
 
     public void initSession() {
+        if (platform == null) {
+            Application.ApplicationType type = Gdx.app.getType();
+            switch (type) {
+                case Android:
+                    setPlatform(Platform.Android);
+                case WebGL:
+                    setPlatform(Platform.WebGL);
+                default:
+                    throw new IllegalStateException("You need to set a platform");
+            }
+
+        }
+        if (os_version == null)
+            throw new IllegalStateException("You need to set a os version");
+
+        if (!os_version.startsWith(platform)) {
+            os_version = platform + " " + os_version;
+        }
+
         session_id = generateSessionID();
         createInitRequest();
         createUserEvent();
     }
 
+    public void setGame_key(String game_key) {
+        this.game_key = game_key;
+    }
+
+    public void setSecret_key(String secret_key) {
+        this.secret_key = secret_key;
+    }
+
+    ;
+
+    public void setPlatform(Platform platform) {
+        switch (platform) {
+            case Windows:
+                this.platform = "windows";
+                return;
+            case WebGL:
+                this.platform = "webgl";
+                return;
+            case iOS:
+                this.platform = "ios";
+                return;
+            case MacOS:
+                this.platform = "mac_osx";
+                return;
+            case Android:
+                this.platform = "android";
+                return;
+            case Linux:
+                this.platform = "linux";
+                return;
+        }
+    }
+
+    ;
+
+    public void setPlatformVersionString(String os_version) {
+        this.os_version = os_version;
+    }
+
+    ;
+
     public enum ProgressionStatus {Start, Fail, Complete}
 
-    public enum EventCategory {
-        user, design, business, progression, resource, error, session_end
-    }
 
     public enum ResourceFlowType {Sink, Source}
 
-    ;
-
     public enum ErrorType {debug, info, warning, error, critical}
 
-    ;
+    /**
+     * Gameanalytics does not allow free definition of platforms. I did not find a documented list of supported
+     * platforms, but these ones work
+     */
+    public enum Platform {
+        Windows, Linux, Android, iOS, WebGL, MacOS
+    }
 
     private class InitEvent implements Json.Serializable {
         @Override
@@ -428,14 +500,12 @@ public class GameAnalytics {
         }
     }
 
-    ;
-
     private class AnnotatedEvent implements Json.Serializable {
         private Map<String, Object> keyValues = new HashMap<>();
 
         public AnnotatedEvent() {
             //this is stored
-            keyValues.put("client_ts", (Long) TimeUtils.millis() / 1000L);
+            keyValues.put("client_ts", (Long) (TimeUtils.millis() + timeStampDiscrepancy) / 1000L);
         }
 
         @Override
@@ -474,7 +544,4 @@ public class GameAnalytics {
             keyValues.put(name, value);
         }
     }
-
-
-
 }
