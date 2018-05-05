@@ -1,0 +1,4 @@
+include ':android'
+include ':core'
+include ':desktop'
+include ':html'
