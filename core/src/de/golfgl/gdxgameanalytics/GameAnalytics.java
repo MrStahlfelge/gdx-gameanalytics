@@ -186,7 +186,7 @@ public class GameAnalytics {
             }
 
             private void failed() {
-                Gdx.app.error(TAG, "Could not send events in waitingQueue.");
+                Gdx.app.error(TAG, "Could not send events in queue - probably offline");
                 addLastFailed();
                 flushingQueue = false;
             }
@@ -378,7 +378,7 @@ public class GameAnalytics {
      * This is failsafe - if no session is open, nothing is done
      */
     public void closeSession() {
-        //TODO should get saved for next time
+        //TODO should get saved for next time, but neverthele
         if (sessionStartTimestamp > 0 && canSendEvents) {
             AnnotatedEvent session_end_event = new AnnotatedEvent();
             session_end_event.put("category", "session_end");
@@ -425,6 +425,7 @@ public class GameAnalytics {
                         // do nothing
                     }
 
+                    nextQueueFlushInSeconds = 0;
                     submitStartSessionRequest();
 
                     // add automated task to flush the qeue every 20 seconds
