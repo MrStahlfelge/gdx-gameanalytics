@@ -7,12 +7,11 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.JsonWriter;
+import com.badlogic.gdx.utils.Queue;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.Timer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,6 +29,7 @@ public class GameAnalytics {
     private final static String sdk_version = "rest api v2";
     private static final int FLUSH_QUEUE_INTERVAL = 20;
     private static final String URL_GAMEANALYTICS = "https://api.gameanalytics.com/v2/";
+    private static final int MAX_EVENTS_SENT = 500;
     protected Timer.Task pingTask;
 
     protected String url = URL_GAMEANALYTICS;
@@ -53,9 +53,10 @@ public class GameAnalytics {
 
     //SDK status
     private boolean canSendEvents = false;
-    private int lastFailedWait = 0;
-    //TODO maximum queue size
-    private List<AnnotatedEvent> queue = new ArrayList<AnnotatedEvent>();
+    private int nextQueueFlushInSeconds = 0;
+    //TODO maximum waitingQueue size
+    private Queue<AnnotatedEvent> waitingQueue = new Queue<AnnotatedEvent>();
+    private Queue<AnnotatedEvent> sendingQueue = new Queue<>();
     private boolean flushingQueue;
     private long timeStampDiscrepancy;
     private long sessionStartTimestamp;
@@ -120,39 +121,49 @@ public class GameAnalytics {
         }
     }
 
+    /**
+     * gets called every second by pingtask
+     */
     protected void flushQueue() {
-        if (!canSendEvents || flushingQueue || queue.size() == 0)
+        if (!canSendEvents || flushingQueue)
             return;
 
-        if (lastFailedWait > 0) {
-            lastFailedWait -= 1;
+        // countdown to flush
+        if (nextQueueFlushInSeconds > 0) {
+            nextQueueFlushInSeconds -= 1;
             return;
         }
 
-        flushingQueue = true;
+        if (waitingQueue.size == 0 && sendingQueue.size == 0)
+            return;
 
-        String payload = "[";
+        flushingQueue = true;
+        nextQueueFlushInSeconds = FLUSH_QUEUE_INTERVAL;
+
+        StringBuilder payload = new StringBuilder();
         Json json = new Json();
         json.setOutputType(JsonWriter.OutputType.json);
 
-        synchronized (queue) {
-            for (int i = 0; i < queue.size(); i++) {
-                if (i != queue.size() - 1) {
-                    payload += json.toJson(queue.get(i)) + ",\n";
-                } else {
-                    payload += json.toJson(queue.get(i)) + "\n";
-                }
+        synchronized (waitingQueue) {
+            while (sendingQueue.size < MAX_EVENTS_SENT && waitingQueue.size > 0)
+                sendingQueue.addLast(waitingQueue.removeFirst());
+
+            payload.append("[");
+            for (int i = 0; i < sendingQueue.size; i++) {
+                payload.append(json.toJson(sendingQueue.get(i)));
+                if (i != sendingQueue.size - 1)
+                    payload.append(",");
             }
         }
-        payload += "]";
+        payload.append("]");
 
-        final Net.HttpRequest request = createHttpRequest(this.url + game_key + "/events", payload);
+        final Net.HttpRequest request = createHttpRequest(this.url + game_key + "/events", payload.toString());
         //Execute and read response
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
             @Override
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
-                synchronized (queue) {
-                    queue.clear();
+                synchronized (waitingQueue) {
+                    sendingQueue.clear();
                 }
 
                 int statusCode = httpResponse.getStatus().getStatusCode();
@@ -174,7 +185,7 @@ public class GameAnalytics {
             }
 
             private void failed() {
-                Gdx.app.error(TAG, "could not send events in queue.");
+                Gdx.app.error(TAG, "could not send events in waitingQueue.");
                 addLastFailed();
                 flushingQueue = false;
             }
@@ -192,15 +203,16 @@ public class GameAnalytics {
     }
 
     private void addLastFailed() {
-        lastFailedWait = Math.max(lastFailedWait * 2, 2);
-        lastFailedWait = Math.min(15, lastFailedWait);
+        // lengthen the time to the next waitingQueue flush after a fail, but not more than 120 seconds
+        nextQueueFlushInSeconds = Math.max(FLUSH_QUEUE_INTERVAL * 2, nextQueueFlushInSeconds + FLUSH_QUEUE_INTERVAL);
+        nextQueueFlushInSeconds = Math.min(120, nextQueueFlushInSeconds);
     }
 
     private void submitStartSessionRequest() {
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "user");
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -208,8 +220,8 @@ public class GameAnalytics {
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "design");
         event.put("event_id", event_id);
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -218,8 +230,8 @@ public class GameAnalytics {
         event.put("category", "design");
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -230,8 +242,8 @@ public class GameAnalytics {
         event.putInt("amount", amount);
         event.put("currency", currency);
         event.putInt("transaction_num", transaction_num);
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -251,8 +263,8 @@ public class GameAnalytics {
         //receipt_info.put("receipt", receipt);
         //receipt_info.put("signature", signature);
         //event.put("receipt_info", receipt_info);
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -275,8 +287,8 @@ public class GameAnalytics {
             // status fail.
             event.putInt("attempt_num", attempt_num);
         }
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -300,8 +312,8 @@ public class GameAnalytics {
             event.putInt("attempt_num", attempt_num);
             event.putInt("score", score);
         }
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -313,8 +325,8 @@ public class GameAnalytics {
         String event_id = flowType.toString() + ":" + virtualCurrency + ":" + itemType + ":" + itemId;
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -323,8 +335,8 @@ public class GameAnalytics {
         event.put("category", "error");
         event.put("severity", severity.toString());
         event.put("message", message);
-        synchronized (queue) {
-            queue.add(event);
+        synchronized (waitingQueue) {
+            waitingQueue.addLast(event);
         }
     }
 
@@ -334,42 +346,16 @@ public class GameAnalytics {
      * This is failsafe - if no session is open, nothing is done
      */
     public void closeSession() {
-        //FIXME this never sends data because applicatin gets closed here. Must get saved for next time
+        //TODO should get saved for next time
         if (sessionStartTimestamp > 0 && canSendEvents) {
             AnnotatedEvent session_end_event = new AnnotatedEvent();
             session_end_event.put("category", "session_end");
             session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
             sessionStartTimestamp = 0;
 
-            Json json = new Json();
-            json.setOutputType(JsonWriter.OutputType.json);
-
-            String event = "[" + json.toJson(session_end_event) + "]";
-
-            final Net.HttpRequest request = createHttpRequest(url + game_key + "/events", event);
-            //Execute and read response
-            Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
-                @Override
-                public void handleHttpResponse(Net.HttpResponse httpResponse) {
-                    Gdx.app.debug(TAG, httpResponse.getStatus().getStatusCode() + " " + httpResponse
-                            .getResultAsString());
-                }
-
-                @Override
-                public void failed(Throwable t) {
-                    failed();
-                }
-
-                @Override
-                public void cancelled() {
-                    failed();
-                }
-
-                private void failed() {
-                    addLastFailed();
-                }
-            });
-
+            waitingQueue.addLast(session_end_event);
+            nextQueueFlushInSeconds = 0;
+            flushQueue();
         }
     }
 
@@ -408,12 +394,13 @@ public class GameAnalytics {
                     }
 
                     // add automated task to flush the qeue every 20 seconds
-                    pingTask = Timer.schedule(new Timer.Task() {
-                        @Override
-                        public void run() {
-                            flushQueue();
-                        }
-                    }, 2, FLUSH_QUEUE_INTERVAL);
+                    if (pingTask == null)
+                        pingTask = Timer.schedule(new Timer.Task() {
+                            @Override
+                            public void run() {
+                                flushQueue();
+                            }
+                        }, 1, 1);
                 }
             }
 
@@ -567,10 +554,14 @@ public class GameAnalytics {
 
     private class AnnotatedEvent implements Json.Serializable {
         private Map<String, Object> keyValues = new HashMap<>();
+        private String sessionId;
+        private int sessionNum;
 
         public AnnotatedEvent() {
             //this is stored
             keyValues.put("client_ts", (Long) (TimeUtils.millis() + timeStampDiscrepancy) / 1000L);
+            this.sessionId = session_id;
+            this.sessionNum = session_num;
         }
 
         @Override
@@ -591,11 +582,8 @@ public class GameAnalytics {
             if (custom3 != null)
                 event.writeValue("custom_03", custom3);
 
-            //TODO use session num and id from this object to support flushing queue entries from last session
-            event.writeValue("session_id", session_id);
-            event.writeValue("session_num", session_num);
-
-            //TODO custom fields
+            event.writeValue("session_id", sessionId);
+            event.writeValue("session_num", sessionNum);
 
             for (String key : keyValues.keySet()) {
                 event.writeValue(key, keyValues.get(key));
