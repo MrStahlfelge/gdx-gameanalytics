@@ -1,6 +1,5 @@
 package de.golfgl.gdxgameanalytics;
 
-import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net;
 import com.badlogic.gdx.Preferences;
@@ -147,16 +146,7 @@ public class GameAnalytics {
         }
         payload += "]";
 
-        final Net.HttpRequest request = new Net.HttpRequest("POST");
-        request.setUrl(url + game_key + "/events");
-        request.setContent(payload);
-        request.setHeader("Accept", "application/json");
-        request.setHeader("Content-type", "application/json");
-
-        // authorization
-        String hash = GwtIncompatibleStuff.generateHash(payload, secret_key);
-        request.setHeader("Authorization", hash);
-
+        final Net.HttpRequest request = createHttpRequest(this.url + game_key + "/events", payload);
         //Execute and read response
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
             @Override
@@ -168,10 +158,7 @@ public class GameAnalytics {
                 int statusCode = httpResponse.getStatus().getStatusCode();
                 String resultAsString = httpResponse.getResultAsString();
 
-                if (statusCode == 200)
-                    Gdx.app.debug(TAG, request.getContent() + "\n" + statusCode + " " + resultAsString);
-                else
-                    Gdx.app.error(TAG, "Could not submit events: " + statusCode + " " + resultAsString);
+                Gdx.app.debug(TAG, statusCode + " " + resultAsString);
 
                 flushingQueue = false;
             }
@@ -192,6 +179,16 @@ public class GameAnalytics {
                 flushingQueue = false;
             }
         });
+    }
+
+    private Net.HttpRequest createHttpRequest(String url, String payload) {
+        final Net.HttpRequest request = new Net.HttpRequest("POST");
+        request.setUrl(url);
+        String hash = GwtIncompatibleStuff.setHttpRequestContent(request, payload, secret_key);
+        request.setHeader("Accept", "application/json");
+        request.setHeader("Content-type", "application/json");
+        request.setHeader("Authorization", hash);
+        return request;
     }
 
     private void addLastFailed() {
@@ -342,8 +339,37 @@ public class GameAnalytics {
             AnnotatedEvent session_end_event = new AnnotatedEvent();
             session_end_event.put("category", "session_end");
             session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
-            submitEvent(session_end_event);
             sessionStartTimestamp = 0;
+
+            Json json = new Json();
+            json.setOutputType(JsonWriter.OutputType.json);
+
+            String event = "[" + json.toJson(session_end_event) + "]";
+
+            final Net.HttpRequest request = createHttpRequest(url + game_key + "/events", event);
+            //Execute and read response
+            Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
+                @Override
+                public void handleHttpResponse(Net.HttpResponse httpResponse) {
+                    Gdx.app.debug(TAG, httpResponse.getStatus().getStatusCode() + " " + httpResponse
+                            .getResultAsString());
+                }
+
+                @Override
+                public void failed(Throwable t) {
+                    failed();
+                }
+
+                @Override
+                public void cancelled() {
+                    failed();
+                }
+
+                private void failed() {
+                    addLastFailed();
+                }
+            });
+
         }
     }
 
@@ -356,15 +382,7 @@ public class GameAnalytics {
 
         String event = "[" + json.toJson(new InitEvent()) + "]";
 
-        final Net.HttpRequest request = new Net.HttpRequest("POST");
-        request.setUrl(url + game_key + "/init");
-        request.setContent(event);
-        request.setHeader("Accept", "application/json");
-        request.setHeader("Content-type", "application/json");
-
-        // authorization
-        String hash = GwtIncompatibleStuff.generateHash(event, secret_key);
-        request.setHeader("Authorization", hash);
+        final Net.HttpRequest request = createHttpRequest(url + game_key + "/init", event);
 
         canSendEvents = false;
         timeStampDiscrepancy = 0;
@@ -376,8 +394,7 @@ public class GameAnalytics {
                 canSendEvents = httpResponse.getStatus().getStatusCode() == 200;
                 String resultAsString = httpResponse.getResultAsString();
 
-                Gdx.app.debug(TAG, request.getContent() + "\n" +
-                        httpResponse.getStatus().getStatusCode() + " " + resultAsString);
+                Gdx.app.debug(TAG, httpResponse.getStatus().getStatusCode() + " " + resultAsString);
                 if (canSendEvents) {
                     // calculate the client's time stamp discrepancy
                     try {
@@ -396,7 +413,7 @@ public class GameAnalytics {
                         public void run() {
                             flushQueue();
                         }
-                    }, FLUSH_QUEUE_INTERVAL, FLUSH_QUEUE_INTERVAL);
+                    }, 2, FLUSH_QUEUE_INTERVAL);
                 }
             }
 
@@ -408,46 +425,6 @@ public class GameAnalytics {
             @Override
             public void cancelled() {
                 canSendEvents = false;
-            }
-        });
-    }
-
-    private void submitEvent(AnnotatedEvent eventJson) {
-        Json json = new Json();
-        json.setOutputType(JsonWriter.OutputType.json);
-
-        String event = "[" + json.toJson(eventJson) + "]";
-
-        final Net.HttpRequest request = new Net.HttpRequest("POST");
-        request.setUrl(url + game_key + "/events");
-        request.setContent(event);
-        request.setHeader("Accept", "application/json");
-        request.setHeader("Content-type", "application/json");
-
-        // authorization
-        String hash = GwtIncompatibleStuff.generateHash(event, secret_key);
-        request.setHeader("Authorization", hash);
-
-        //Execute and read response
-        Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
-            @Override
-            public void handleHttpResponse(Net.HttpResponse httpResponse) {
-                Gdx.app.debug(TAG, request.getContent() + "\n" +
-                        httpResponse.getStatus().getStatusCode() + " " + httpResponse.getResultAsString());
-            }
-
-            @Override
-            public void failed(Throwable t) {
-                failed();
-            }
-
-            @Override
-            public void cancelled() {
-                failed();
-            }
-
-            private void failed() {
-                addLastFailed();
             }
         });
     }

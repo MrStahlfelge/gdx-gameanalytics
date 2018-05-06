@@ -94,7 +94,7 @@ public class GameAnalyticsTest {
         //Finally close session by sending session_end event
         ga.closeSession();
 
-        Thread.sleep(1500); // give the HTTP request some time - this is needed just for Unit Tests
+        Thread.sleep(10000); // give the HTTP request some time - this is needed just for Unit Tests
 
     }
 }
