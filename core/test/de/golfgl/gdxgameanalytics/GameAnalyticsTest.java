@@ -6,6 +6,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.headless.HeadlessApplication;
 import com.badlogic.gdx.graphics.GL20;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -62,7 +63,9 @@ public class GameAnalyticsTest {
         ga.setGameSecretKey(KEY_SANDBOX_SECRET);
 
         ga.setPlatform(GameAnalytics.Platform.Windows);
-        ga.setPlatformVersionString("10");
+        Assert.assertTrue(ga.setPlatformVersionString("1"));
+        Assert.assertFalse(ga.setPlatformVersionString("10.x"));
+        Assert.assertTrue(ga.setPlatformVersionString("10.2.3"));
         ga.setGameBuildNumber("1");
 
         ga.startSession();

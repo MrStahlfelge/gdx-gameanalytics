@@ -334,8 +334,8 @@ public class GameAnalytics {
      * This is failsafe - if no session is open, nothing is done
      */
     public void closeSession() {
+        //FIXME this never sends data because applicatin gets closed here. Must get saved for next time
         if (sessionStartTimestamp > 0 && canSendEvents) {
-            //TODO queue should get flushed here
             AnnotatedEvent session_end_event = new AnnotatedEvent();
             session_end_event.put("category", "session_end");
             session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
@@ -475,8 +475,14 @@ public class GameAnalytics {
         return os_version;
     }
 
-    public void setPlatformVersionString(String os_version) {
+    /**
+     * @param os_version must match [0-9]{0,5}(\.[0-9]{0,5}){0,2}$. Unique value limit is 255
+     * @return if your version String matched the expected regex.
+     */
+    public boolean setPlatformVersionString(String os_version) {
         this.os_version = os_version;
+        boolean matches = os_version.matches("[0-9]{0,5}(\\.[0-9]{0,5}){0,2}");
+        return matches;
     }
 
     public String getGameBuildNumber() {
@@ -485,12 +491,15 @@ public class GameAnalytics {
 
     /**
      * @param build buildnumber of your game. This is a string, so you can also add build type information
-     *              (e.g. "1818_debug", "1205_amazon", "1.5_tv")
+     *              (e.g. "1818_debug", "1205_amazon", "1.5_tv") - but be aware, limit of unit strings is 100
      */
     public void setGameBuildNumber(String build) {
         this.build = build;
     }
 
+    /**
+     * @param device device information. Unqiue value limit is 500
+     */
     public void setDevice(String device) {
         this.device = device;
     }
@@ -508,21 +517,21 @@ public class GameAnalytics {
     }
 
     /**
-     * @param custom1 value for custom dimension. 50 different values supported at max
+     * @param custom1 value for custom dimension. 50 different values supported at max, max length 32
      */
     public void setCustom1(String custom1) {
         this.custom1 = custom1;
     }
 
     /**
-     * @param custom2 value for custom dimension. 50 different values supported at max
+     * @param custom2 value for custom dimension. 50 different values supported at max, max length 32
      */
     public void setCustom2(String custom2) {
         this.custom2 = custom2;
     }
 
     /**
-     * @param custom3 value for custom dimension. 50 different values supported at max
+     * @param custom3 value for custom dimension. 50 different values supported at max, max length 32
      */
     public void setCustom3(String custom3) {
         this.custom3 = custom3;

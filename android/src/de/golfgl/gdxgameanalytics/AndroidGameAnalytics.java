@@ -12,8 +12,14 @@ public class AndroidGameAnalytics extends GameAnalytics {
     @Override
     public void startSession() {
         setPlatform(Platform.Android);
-        setPlatformVersionString(Build.VERSION.RELEASE);
-        setDevice(Build.DEVICE);
+        if (!setPlatformVersionString(Build.VERSION.RELEASE)) {
+            // just in case we have a very strange Android version
+            setPlatformVersionString("0");
+        }
+
+        // why this? Two reasons: Devices are limited to 500 unique values and there are tenthousands of devices
+        // around. And you can only filter by device, not by manufacturer while the latter is more interesting
+        setDevice(Build.MANUFACTURER);
         setManufacturer(Build.MANUFACTURER);
 
         super.startSession();
