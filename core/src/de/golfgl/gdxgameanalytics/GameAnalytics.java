@@ -53,7 +53,7 @@ public class GameAnalytics {
     private String custom3;
 
     //SDK status - this is false when not initialized or initializing failed
-    private boolean canSendEvents = false;
+    private boolean connectionInitialized = false;
     private int nextQueueFlushInSeconds = 0;
     //TODO maximum waitingQueue size
     private Queue<AnnotatedEvent> waitingQueue = new Queue<AnnotatedEvent>();
@@ -122,7 +122,7 @@ public class GameAnalytics {
      * gets called every second by pingtask
      */
     protected void flushQueue() {
-        if (!canSendEvents || flushingQueue)
+        if (!connectionInitialized || flushingQueue)
             return;
 
         // countdown to flush
@@ -224,7 +224,7 @@ public class GameAnalytics {
     }
 
     public void submitDesignEvent(String event_id) {
-        if (!canSend())
+        if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
@@ -236,7 +236,7 @@ public class GameAnalytics {
     }
 
     public void submitDesignEvent(String event_id, float amount) {
-        if (!canSend())
+        if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
@@ -249,7 +249,7 @@ public class GameAnalytics {
     }
 
     private void createGenericBusinessEvent(String event_id, int amount, String currency, int transaction_num) {
-        if (!canSend())
+        if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
@@ -265,7 +265,7 @@ public class GameAnalytics {
 
     private void createGenericBusinessEventGoogle(String event_id, int amount, String currency, int
             transaction_num, String cart_type, String receipt, String signature) {
-        if (!canSend())
+        if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
@@ -289,7 +289,7 @@ public class GameAnalytics {
 
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
                                        String progression03) {
-        if (!canSend())
+        if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
@@ -316,7 +316,7 @@ public class GameAnalytics {
 
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
                                        String progression03, int score) {
-        if (!canSend())
+        if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
@@ -355,7 +355,7 @@ public class GameAnalytics {
 
     private void createResourceEvent(ResourceFlowType flowType, String virtualCurrency, String itemType,
                                      String itemId, float amount) {
-        if (!canSend())
+        if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
@@ -379,7 +379,7 @@ public class GameAnalytics {
     }
 
     private void createErrorEvent(ErrorType severity, String message) {
-        if (!canSend())
+        if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
@@ -413,7 +413,7 @@ public class GameAnalytics {
      */
     public void closeSession() {
         //TODO should get saved for next time, but neverthele
-        if (sessionStartTimestamp > 0 && canSendEvents) {
+        if (sessionStartTimestamp > 0 && connectionInitialized) {
             AnnotatedEvent session_end_event = new AnnotatedEvent();
             session_end_event.put("category", "session_end");
             session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
@@ -436,18 +436,18 @@ public class GameAnalytics {
 
         final Net.HttpRequest request = createHttpRequest(url + game_key + "/init", event);
 
-        canSendEvents = false;
+        connectionInitialized = false;
         timeStampDiscrepancy = 0;
 
         //Execute and read response
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
             @Override
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
-                canSendEvents = httpResponse.getStatus().getStatusCode() == 200;
+                connectionInitialized = httpResponse.getStatus().getStatusCode() == 200;
                 String resultAsString = httpResponse.getResultAsString();
 
                 Gdx.app.debug(TAG, httpResponse.getStatus().getStatusCode() + " " + resultAsString);
-                if (canSendEvents) {
+                if (connectionInitialized) {
                     // calculate the client's time stamp discrepancy
                     try {
                         JsonValue response = new JsonReader().parse(resultAsString);
@@ -480,7 +480,7 @@ public class GameAnalytics {
 
             @Override
             public void cancelled() {
-                canSendEvents = false;
+                connectionInitialized = false;
                 Gdx.app.error(TAG, "Could not connect to GameAnalytics - suspended");
             }
         });
@@ -489,8 +489,8 @@ public class GameAnalytics {
     /**
      * @return if events are sent to gameanalytics after a successful login
      */
-    public boolean canSend() {
-        return canSendEvents;
+    public boolean isInitialized() {
+        return connectionInitialized;
     }
 
     public void setGameKey(String gamekey) {
