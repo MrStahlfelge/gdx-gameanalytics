@@ -296,7 +296,7 @@ public class GameAnalytics {
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "progression");
 
-        String event_id = status.toString() + ":" + progression01;
+        String event_id = getStatusString(status) + ":" + progression01;
         if (progression02.length() > 0) {
             event_id += ":" + progression02;
         }
@@ -323,7 +323,7 @@ public class GameAnalytics {
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "progression");
 
-        String event_id = status.toString() + ":" + progression01;
+        String event_id = getStatusString(status) + ":" + progression01;
         if (progression02.length() > 0) {
             event_id += ":" + progression02;
         }
@@ -343,6 +343,17 @@ public class GameAnalytics {
         }
     }
 
+    private String getStatusString(ProgressionStatus status) {
+        switch (status) {
+            case Start:
+                return "Start";
+            case Fail:
+                return "Fail";
+            default:
+                return "Complete";
+        }
+    }
+
     private void createResourceEvent(ResourceFlowType flowType, String virtualCurrency, String itemType,
                                      String itemId, float amount) {
         if (!canSend())
@@ -351,11 +362,20 @@ public class GameAnalytics {
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "resource");
 
-        String event_id = flowType.toString() + ":" + virtualCurrency + ":" + itemType + ":" + itemId;
+        String event_id = getFlowTypeString(flowType) + ":" + virtualCurrency + ":" + itemType + ":" + itemId;
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
         synchronized (waitingQueue) {
             addToWaitingQueue(event);
+        }
+    }
+
+    private String getFlowTypeString(ResourceFlowType flowType) {
+        switch (flowType) {
+            case Sink:
+                return "Skink";
+            default:
+                return "Source";
         }
     }
 
@@ -365,10 +385,25 @@ public class GameAnalytics {
 
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "error");
-        event.put("severity", severity.toString());
+        event.put("severity", getSeverityString(severity));
         event.put("message", message);
         synchronized (waitingQueue) {
             addToWaitingQueue(event);
+        }
+    }
+
+    private String getSeverityString(ErrorType severity) {
+        switch (severity) {
+            case info:
+                return "info";
+            case debug:
+                return "debug";
+            case error:
+                return "error";
+            case critical:
+                return "critical";
+            default:
+                return "warning";
         }
     }
 
