@@ -84,10 +84,6 @@ public class GameAnalytics {
         if (os_version == null)
             throw new IllegalStateException("You need to set a os version");
 
-        if (!os_version.startsWith(platform)) {
-            os_version = platform + " " + os_version;
-        }
-
         if (prefs == null)
             Gdx.app.log(TAG, "You did not set up preferences. Session and user tracking will not work without it");
 
@@ -170,7 +166,10 @@ public class GameAnalytics {
                 int statusCode = httpResponse.getStatus().getStatusCode();
                 String resultAsString = httpResponse.getResultAsString();
 
-                Gdx.app.debug(TAG, statusCode + " " + resultAsString);
+                if (statusCode == 200)
+                    Gdx.app.debug(TAG, statusCode + " " + resultAsString);
+                else
+                    Gdx.app.error(TAG, statusCode + " " + resultAsString);
 
                 flushingQueue = false;
             }
@@ -613,7 +612,7 @@ public class GameAnalytics {
         @Override
         public void write(Json json) {
             json.writeValue("platform", platform);
-            json.writeValue(os_version, os_version);
+            json.writeValue("os_version", platform + " " + os_version);
             json.writeValue("sdk_version", sdk_version);
         }
 
@@ -638,7 +637,7 @@ public class GameAnalytics {
         @Override
         public void write(Json event) {
             event.writeValue("platform", platform);
-            event.writeValue("os_version", os_version);
+            event.writeValue("os_version", platform + " " + os_version);
             event.writeValue("sdk_version", sdk_version);
             event.writeValue("device", device);
             event.writeValue("manufacturer", manufacturer);
