@@ -13,7 +13,7 @@ Besides, this implementation does not send any identifiable user data. For retur
 
 ## Installation
 
-This project is NOT YET published to the Sonatype Maven repository. You can integrate the lib into your project by just adding the dependencies to your `build.gradle` file.
+This project is published to the Sonatype Maven repository. You can integrate the lib into your project by just adding the dependencies to your `build.gradle` file.
 
 Define the version of this API right after the gdxVersion:
 
