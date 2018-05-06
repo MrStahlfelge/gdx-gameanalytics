@@ -30,6 +30,7 @@ public class GameAnalytics {
     private static final int FLUSH_QUEUE_INTERVAL = 20;
     private static final String URL_GAMEANALYTICS = "https://api.gameanalytics.com/v2/";
     private static final int MAX_EVENTS_SENT = 500;
+    private static final int MAX_EVENTS_CACHED = 5000;
     protected Timer.Task pingTask;
 
     protected String url = URL_GAMEANALYTICS;
@@ -51,7 +52,7 @@ public class GameAnalytics {
     private String custom2;
     private String custom3;
 
-    //SDK status
+    //SDK status - this is false when not initialized or initializing failed
     private boolean canSendEvents = false;
     private int nextQueueFlushInSeconds = 0;
     //TODO maximum waitingQueue size
@@ -96,7 +97,7 @@ public class GameAnalytics {
         sessionStartTimestamp = TimeUtils.millis();
 
         submitInitRequest();
-        submitStartSessionRequest();
+        // start session is called if request is successful
     }
 
     private void loadOrInitUserStringAndSessionNum() {
@@ -185,7 +186,7 @@ public class GameAnalytics {
             }
 
             private void failed() {
-                Gdx.app.error(TAG, "could not send events in waitingQueue.");
+                Gdx.app.error(TAG, "Could not send events in waitingQueue.");
                 addLastFailed();
                 flushingQueue = false;
             }
@@ -208,34 +209,50 @@ public class GameAnalytics {
         nextQueueFlushInSeconds = Math.min(120, nextQueueFlushInSeconds);
     }
 
+    private void addToWaitingQueue(AnnotatedEvent event) {
+        while (waitingQueue.size > MAX_EVENTS_CACHED)
+            waitingQueue.removeFirst();
+
+        waitingQueue.addLast(event);
+    }
+
     private void submitStartSessionRequest() {
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "user");
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
     public void submitDesignEvent(String event_id) {
+        if (!canSend())
+            return;
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "design");
         event.put("event_id", event_id);
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
     public void submitDesignEvent(String event_id, float amount) {
+        if (!canSend())
+            return;
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "design");
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
     private void createGenericBusinessEvent(String event_id, int amount, String currency, int transaction_num) {
+        if (!canSend())
+            return;
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "business");
         event.put("event_id", event_id);
@@ -243,12 +260,15 @@ public class GameAnalytics {
         event.put("currency", currency);
         event.putInt("transaction_num", transaction_num);
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
     private void createGenericBusinessEventGoogle(String event_id, int amount, String currency, int
             transaction_num, String cart_type, String receipt, String signature) {
+        if (!canSend())
+            return;
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "business");
         event.put("event_id", event_id);
@@ -264,12 +284,15 @@ public class GameAnalytics {
         //receipt_info.put("signature", signature);
         //event.put("receipt_info", receipt_info);
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
                                        String progression03) {
+        if (!canSend())
+            return;
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "progression");
 
@@ -288,12 +311,15 @@ public class GameAnalytics {
             event.putInt("attempt_num", attempt_num);
         }
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
                                        String progression03, int score) {
+        if (!canSend())
+            return;
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "progression");
 
@@ -313,12 +339,15 @@ public class GameAnalytics {
             event.putInt("score", score);
         }
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
     private void createResourceEvent(ResourceFlowType flowType, String virtualCurrency, String itemType,
                                      String itemId, float amount) {
+        if (!canSend())
+            return;
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "resource");
 
@@ -326,17 +355,20 @@ public class GameAnalytics {
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
     private void createErrorEvent(ErrorType severity, String message) {
+        if (!canSend())
+            return;
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "error");
         event.put("severity", severity.toString());
         event.put("message", message);
         synchronized (waitingQueue) {
-            waitingQueue.addLast(event);
+            addToWaitingQueue(event);
         }
     }
 
@@ -351,12 +383,12 @@ public class GameAnalytics {
             AnnotatedEvent session_end_event = new AnnotatedEvent();
             session_end_event.put("category", "session_end");
             session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
-            sessionStartTimestamp = 0;
 
-            waitingQueue.addLast(session_end_event);
+            addToWaitingQueue(session_end_event);
             nextQueueFlushInSeconds = 0;
             flushQueue();
         }
+        sessionStartTimestamp = 0;
     }
 
     /**
@@ -393,6 +425,8 @@ public class GameAnalytics {
                         // do nothing
                     }
 
+                    submitStartSessionRequest();
+
                     // add automated task to flush the qeue every 20 seconds
                     if (pingTask == null)
                         pingTask = Timer.schedule(new Timer.Task() {
@@ -406,12 +440,13 @@ public class GameAnalytics {
 
             @Override
             public void failed(Throwable t) {
-                canSendEvents = false;
+                cancelled();
             }
 
             @Override
             public void cancelled() {
                 canSendEvents = false;
+                Gdx.app.error(TAG, "Could not connect to GameAnalytics - suspended");
             }
         });
     }
