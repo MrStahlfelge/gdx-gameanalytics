@@ -59,6 +59,7 @@ public class GameAnalytics {
     private Queue<AnnotatedEvent> waitingQueue = new Queue<AnnotatedEvent>();
     private Queue<AnnotatedEvent> sendingQueue = new Queue<>();
     private boolean flushingQueue;
+    private int failedFlushAttempts;
     private long timeStampDiscrepancy;
     private long sessionStartTimestamp;
     private Preferences prefs;
@@ -70,7 +71,7 @@ public class GameAnalytics {
      * Call this on game start and on resume.
      */
     public void startSession() {
-        if (sessionStartTimestamp > 0) {
+        if (sessionStartTimestamp > 0 && connectionInitialized) {
             Gdx.app.log(TAG, "No new session started. Session still ongoing");
             return;
         }
@@ -90,7 +91,6 @@ public class GameAnalytics {
         loadOrInitUserStringAndSessionNum();
 
         session_id = GwtIncompatibleStuff.generateUuid();
-        sessionStartTimestamp = TimeUtils.millis();
 
         submitInitRequest();
         // start session is called if request is successful
@@ -171,6 +171,7 @@ public class GameAnalytics {
                 else
                     Gdx.app.error(TAG, statusCode + " " + resultAsString);
 
+                failedFlushAttempts = 0;
                 flushingQueue = false;
             }
 
@@ -186,7 +187,10 @@ public class GameAnalytics {
 
             private void failed() {
                 Gdx.app.error(TAG, "Could not send events in queue - probably offline");
-                addLastFailed();
+                // lengthen the time to the next waitingQueue flush after a fail, but not more than 180 seconds
+                failedFlushAttempts = Math.min(failedFlushAttempts + 1, 180 / FLUSH_QUEUE_INTERVAL);
+                nextQueueFlushInSeconds = FLUSH_QUEUE_INTERVAL * (failedFlushAttempts + 1);
+                Gdx.app.log(TAG, "Next flush attempt in " + nextQueueFlushInSeconds + " seconds");
                 flushingQueue = false;
             }
         });
@@ -200,13 +204,6 @@ public class GameAnalytics {
         request.setHeader("Content-type", "application/json");
         request.setHeader("Authorization", hash);
         return request;
-    }
-
-    private void addLastFailed() {
-        // lengthen the time to the next waitingQueue flush after a fail, but not more than 120 seconds
-        nextQueueFlushInSeconds = Math.max(FLUSH_QUEUE_INTERVAL * 2, nextQueueFlushInSeconds + FLUSH_QUEUE_INTERVAL);
-        nextQueueFlushInSeconds = Math.min(120, nextQueueFlushInSeconds);
-        Gdx.app.log(TAG, "Next flush attempt in " + nextQueueFlushInSeconds + " seconds");
     }
 
     private void addToWaitingQueue(AnnotatedEvent event) {
@@ -449,6 +446,7 @@ public class GameAnalytics {
             @Override
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
                 connectionInitialized = httpResponse.getStatus().getStatusCode() == 200;
+                sessionStartTimestamp = TimeUtils.millis();
                 String resultAsString = httpResponse.getResultAsString();
 
                 Gdx.app.debug(TAG, httpResponse.getStatus().getStatusCode() + " " + resultAsString);
