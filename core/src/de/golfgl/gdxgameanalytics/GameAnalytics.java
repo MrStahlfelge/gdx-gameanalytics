@@ -190,7 +190,7 @@ public class GameAnalytics {
                 // lengthen the time to the next waitingQueue flush after a fail, but not more than 180 seconds
                 failedFlushAttempts = Math.min(failedFlushAttempts + 1, 180 / FLUSH_QUEUE_INTERVAL);
                 nextQueueFlushInSeconds = FLUSH_QUEUE_INTERVAL * (failedFlushAttempts + 1);
-                Gdx.app.log(TAG, "Next flush attempt in " + nextQueueFlushInSeconds + " seconds");
+                Gdx.app.debug(TAG, "Next flush attempt in " + nextQueueFlushInSeconds + " seconds");
                 flushingQueue = false;
             }
         });
@@ -449,8 +449,8 @@ public class GameAnalytics {
                 sessionStartTimestamp = TimeUtils.millis();
                 String resultAsString = httpResponse.getResultAsString();
 
-                Gdx.app.debug(TAG, httpResponse.getStatus().getStatusCode() + " " + resultAsString);
                 if (connectionInitialized) {
+                    Gdx.app.debug(TAG, httpResponse.getStatus().getStatusCode() + " " + resultAsString);
                     // calculate the client's time stamp discrepancy
                     try {
                         JsonValue response = new JsonReader().parse(resultAsString);
@@ -473,7 +473,8 @@ public class GameAnalytics {
                                 flushQueue();
                             }
                         }, 1, 1);
-                }
+                } else
+                    Gdx.app.error(TAG, "Connection attempt failed: " + httpResponse.getStatus().getStatusCode() + " " + resultAsString);
             }
 
             @Override
