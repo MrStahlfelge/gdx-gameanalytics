@@ -206,6 +206,7 @@ public class GameAnalytics {
         // lengthen the time to the next waitingQueue flush after a fail, but not more than 120 seconds
         nextQueueFlushInSeconds = Math.max(FLUSH_QUEUE_INTERVAL * 2, nextQueueFlushInSeconds + FLUSH_QUEUE_INTERVAL);
         nextQueueFlushInSeconds = Math.min(120, nextQueueFlushInSeconds);
+        Gdx.app.log(TAG, "Next flush attempt in " + nextQueueFlushInSeconds + " seconds");
     }
 
     private void addToWaitingQueue(AnnotatedEvent event) {
@@ -412,17 +413,21 @@ public class GameAnalytics {
      * This is failsafe - if no session is open, nothing is done
      */
     public void closeSession() {
-        //TODO should get saved for next time, but neverthele
+        //TODO should get saved for next time, but works well on Android (not on Desktop though)
         if (sessionStartTimestamp > 0 && connectionInitialized) {
             AnnotatedEvent session_end_event = new AnnotatedEvent();
             session_end_event.put("category", "session_end");
             session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
 
             addToWaitingQueue(session_end_event);
-            nextQueueFlushInSeconds = 0;
-            flushQueue();
+            flushQueueImmediately();
         }
         sessionStartTimestamp = 0;
+    }
+
+    public void flushQueueImmediately() {
+        nextQueueFlushInSeconds = 0;
+        flushQueue();
     }
 
     /**
@@ -459,8 +464,8 @@ public class GameAnalytics {
                         // do nothing
                     }
 
-                    nextQueueFlushInSeconds = 0;
                     submitStartSessionRequest();
+                    flushQueueImmediately();
 
                     // add automated task to flush the qeue every 20 seconds
                     if (pingTask == null)
