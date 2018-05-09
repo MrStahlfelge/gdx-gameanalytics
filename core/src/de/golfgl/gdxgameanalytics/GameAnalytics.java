@@ -31,6 +31,8 @@ public class GameAnalytics {
     private static final String URL_GAMEANALYTICS = "https://api.gameanalytics.com/v2/";
     private static final int MAX_EVENTS_SENT = 100;
     private static final int MAX_EVENTS_CACHED = 1000;
+
+    // possible TODO: Timer fires on foreground thread, building and compressing content should be done in background
     protected Timer.Task pingTask;
 
     protected String url = URL_GAMEANALYTICS;
