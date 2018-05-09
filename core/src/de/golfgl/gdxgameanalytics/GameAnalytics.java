@@ -229,19 +229,21 @@ public class GameAnalytics {
         event.put("category", "design");
         event.put("event_id", event_id);
         synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing design event");
             addToWaitingQueue(event);
         }
     }
 
-    public void submitDesignEvent(String event_id, float amount) {
+    public void submitDesignEvent(String event_id, float value) {
         if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "design");
         event.put("event_id", event_id);
-        event.putFloat("amount", amount);
+        event.putFloat("value", value);
         synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing design event");
             addToWaitingQueue(event);
         }
     }
@@ -257,6 +259,7 @@ public class GameAnalytics {
         event.put("currency", currency);
         event.putInt("transaction_num", transaction_num);
         synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing business event");
             addToWaitingQueue(event);
         }
     }
@@ -281,6 +284,7 @@ public class GameAnalytics {
         //receipt_info.put("signature", signature);
         //event.put("receipt_info", receipt_info);
         synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing business event");
             addToWaitingQueue(event);
         }
     }
@@ -302,12 +306,13 @@ public class GameAnalytics {
         }
         event.put("event_id", event_id);
 
-        if (status == ProgressionStatus.Complete || status == ProgressionStatus.Fail) {
-            int attempt_num = 1; //increment each time this particular progression event has been generated with
+        //if (status == ProgressionStatus.Complete || status == ProgressionStatus.Fail) {
+            //int attempt_num = 1; //increment each time this particular progression event has been generated with
             // status fail.
-            event.putInt("attempt_num", attempt_num);
-        }
+            //event.putInt("attempt_num", attempt_num);
+        //}
         synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing progression event");
             addToWaitingQueue(event);
         }
     }
@@ -330,12 +335,13 @@ public class GameAnalytics {
         event.put("event_id", event_id);
 
         if (status == ProgressionStatus.Complete || status == ProgressionStatus.Fail) {
-            int attempt_num = 1; //increment each time this particular progression event has been generated with
+            //int attempt_num = 1; //increment each time this particular progression event has been generated with
             // status fail.
-            event.putInt("attempt_num", attempt_num);
+            //event.putInt("attempt_num", attempt_num);
             event.putInt("score", score);
         }
         synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing progression event");
             addToWaitingQueue(event);
         }
     }
@@ -363,6 +369,7 @@ public class GameAnalytics {
         event.put("event_id", event_id);
         event.putFloat("amount", amount);
         synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing resource event");
             addToWaitingQueue(event);
         }
     }
@@ -385,6 +392,7 @@ public class GameAnalytics {
         event.put("severity", getSeverityString(severity));
         event.put("message", message);
         synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing error event (" + message + ")");
             addToWaitingQueue(event);
         }
     }
@@ -446,12 +454,13 @@ public class GameAnalytics {
             @Override
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
                 connectionInitialized = httpResponse.getStatus().getStatusCode() == 200;
-                sessionStartTimestamp = TimeUtils.millis();
                 String resultAsString = httpResponse.getResultAsString();
 
                 if (connectionInitialized) {
                     Gdx.app.debug(TAG, httpResponse.getStatus().getStatusCode() + " " + resultAsString);
                     // calculate the client's time stamp discrepancy
+
+                    sessionStartTimestamp = TimeUtils.millis();
                     try {
                         JsonValue response = new JsonReader().parse(resultAsString);
                         long serverTimestamp = response.getLong("server_ts") * 1000L;

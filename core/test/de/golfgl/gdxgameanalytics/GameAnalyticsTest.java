@@ -92,7 +92,7 @@ public class GameAnalyticsTest {
         //CreateErrorEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ErrorType.info, "The instrumentation runs smooth!");
 
         //Send all events in queue
-        ga.flushQueue();
+        ga.flushQueueImmediately();
 
         //Finally close session by sending session_end event
         ga.closeSession();
