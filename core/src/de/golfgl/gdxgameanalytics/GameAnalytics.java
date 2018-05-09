@@ -29,8 +29,8 @@ public class GameAnalytics {
     private final static String sdk_version = "rest api v2";
     private static final int FLUSH_QUEUE_INTERVAL = 20;
     private static final String URL_GAMEANALYTICS = "https://api.gameanalytics.com/v2/";
-    private static final int MAX_EVENTS_SENT = 500;
-    private static final int MAX_EVENTS_CACHED = 5000;
+    private static final int MAX_EVENTS_SENT = 100;
+    private static final int MAX_EVENTS_CACHED = 1000;
     protected Timer.Task pingTask;
 
     protected String url = URL_GAMEANALYTICS;
@@ -424,6 +424,7 @@ public class GameAnalytics {
             session_end_event.put("category", "session_end");
             session_end_event.putInt("length", (int) ((TimeUtils.millis() - sessionStartTimestamp) / 1000L));
 
+            //this will not work if queue is full. But in that case, the message will probably never get sent
             addToWaitingQueue(session_end_event);
             flushQueueImmediately();
         }
