@@ -19,7 +19,7 @@ public class AndroidGameAnalytics extends GameAnalytics {
 
         // why this? Two reasons: Devices are limited to 500 unique values and there are tenthousands of devices
         // around. And you can only filter by device, not by manufacturer while the latter is more interesting
-        setDevice(Build.MANUFACTURER);
+        setDevice(Build.MODEL);
         setManufacturer(Build.MANUFACTURER);
 
         super.startSession();

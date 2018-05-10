@@ -147,6 +147,7 @@ public class GameAnalytics {
             while (sendingQueue.size < MAX_EVENTS_SENT && waitingQueue.size > 0)
                 sendingQueue.addLast(waitingQueue.removeFirst());
 
+            Gdx.app.debug(TAG, "Sending queue with " + sendingQueue.size + " events");
             payload.append("[");
             for (int i = 0; i < sendingQueue.size; i++) {
                 payload.append(json.toJson(sendingQueue.get(i)));
@@ -574,6 +575,9 @@ public class GameAnalytics {
      * @param device device information. Unqiue value limit is 500
      */
     public void setDevice(String device) {
+        if (device.length() > 30)
+            device = device.substring(0, 30);
+
         this.device = device;
     }
 
