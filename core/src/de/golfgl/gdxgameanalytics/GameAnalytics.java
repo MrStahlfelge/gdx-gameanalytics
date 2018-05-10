@@ -479,6 +479,8 @@ public class GameAnalytics {
                     flushQueueImmediately();
 
                     // add automated task to flush the qeue every 20 seconds
+                    // FIXME if this is called while lockscreen is on, task is not working. Mostly a problem when
+                    // testing with adb
                     if (pingTask == null)
                         pingTask = Timer.schedule(new Timer.Task() {
                             @Override
