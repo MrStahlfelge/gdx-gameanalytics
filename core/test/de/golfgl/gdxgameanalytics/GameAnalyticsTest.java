@@ -70,6 +70,9 @@ public class GameAnalyticsTest {
 
         ga.startSession();
 
+        Thread.sleep(300);
+        Assert.assertTrue(ga.isInitialized());
+
         //Design events
         ga.submitDesignEvent("kill:robot:blue");
         ga.submitDesignEvent("Tutorial:Step1:Finished", 100f);
@@ -89,15 +92,14 @@ public class GameAnalyticsTest {
         //CreateResourceEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ResourceFlowType.Source, "silver", "Consumable", "Mana potion", 5);
 
         //Error event
-        //CreateErrorEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ErrorType.info, "The instrumentation runs smooth!");
+        ga.submitErrorEvent(GameAnalytics.ErrorType.error, "Ohohoh");
 
-        //Send all events in queue
-        ga.flushQueueImmediately();
+        Thread.sleep(1000); // give the HTTP request some time - this is needed just for Unit Tests
 
         //Finally close session by sending session_end event
         ga.closeSession();
 
-        Thread.sleep(10000); // give the HTTP request some time - this is needed just for Unit Tests
+        Thread.sleep(1000); // give the HTTP request some time - this is needed just for Unit Tests
 
     }
 }

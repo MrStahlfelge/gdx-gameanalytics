@@ -386,7 +386,12 @@ public class GameAnalytics {
         }
     }
 
-    private void createErrorEvent(ErrorType severity, String message) {
+    /**
+     * submits an error event
+     * @param severity
+     * @param message
+     */
+    public void submitErrorEvent(ErrorType severity, String message) {
         if (!isInitialized())
             return;
 
