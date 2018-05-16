@@ -36,9 +36,9 @@ public class GameAnalytics {
     protected Timer.Task pingTask;
 
     protected String url = URL_GAMEANALYTICS;
+    protected boolean flushingQueue;
     private String game_key = null;
     private String secret_key = null;
-
     //dimension information
     private String platform = null;
     private String os_version = null;
@@ -53,14 +53,11 @@ public class GameAnalytics {
     private String custom1;
     private String custom2;
     private String custom3;
-
     //SDK status - this is false when not initialized or initializing failed
     private boolean connectionInitialized = false;
     private int nextQueueFlushInSeconds = 0;
-    //TODO maximum waitingQueue size
     private Queue<AnnotatedEvent> waitingQueue = new Queue<AnnotatedEvent>();
     private Queue<AnnotatedEvent> sendingQueue = new Queue<>();
-    private boolean flushingQueue;
     private int failedFlushAttempts;
     private long timeStampDiscrepancy;
     private long sessionStartTimestamp;
@@ -68,13 +65,15 @@ public class GameAnalytics {
 
     /**
      * initializes and starts the session. Make sure you have set all neccessary parameters before calling this
-     * This can be called but twice on an object, but it will only take effect if an ongoing session was ended before.
+     * This can be called but twice, but if it is called when a session is still ongoing, it just resets the session
+     * start time.
      * <p>
      * Call this on game start and on resume.
      */
     public void startSession() {
         if (sessionStartTimestamp > 0 && connectionInitialized) {
             Gdx.app.log(TAG, "No new session started. Session still ongoing");
+            sessionStartTimestamp = TimeUtils.millis();
             return;
         }
 
