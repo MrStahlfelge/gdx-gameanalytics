@@ -294,34 +294,11 @@ public class GameAnalytics {
 
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
                                        String progression03) {
-        if (!isInitialized())
-            return;
-
-        AnnotatedEvent event = new AnnotatedEvent();
-        event.put("category", "progression");
-
-        String event_id = getStatusString(status) + ":" + progression01;
-        if (progression02.length() > 0) {
-            event_id += ":" + progression02;
-        }
-        if (progression03.length() > 0) {
-            event_id += ":" + progression03;
-        }
-        event.put("event_id", event_id);
-
-        //if (status == ProgressionStatus.Complete || status == ProgressionStatus.Fail) {
-            //int attempt_num = 1; //increment each time this particular progression event has been generated with
-            // status fail.
-            //event.putInt("attempt_num", attempt_num);
-        //}
-        synchronized (waitingQueue) {
-            Gdx.app.debug(TAG, "Queuing progression event");
-            addToWaitingQueue(event);
-        }
+        submitProgressionEvent(status, progression01, progression02, progression03, 0, 0);
     }
 
     public void submitProgressionEvent(ProgressionStatus status, String progression01, String progression02,
-                                       String progression03, int score) {
+                                       String progression03, int score, int attemptNum) {
         if (!isInitialized())
             return;
 
@@ -338,10 +315,10 @@ public class GameAnalytics {
         event.put("event_id", event_id);
 
         if (status == ProgressionStatus.Complete || status == ProgressionStatus.Fail) {
-            //int attempt_num = 1; //increment each time this particular progression event has been generated with
-            // status fail.
-            //event.putInt("attempt_num", attempt_num);
-            event.putInt("score", score);
+            if (attemptNum > 0)
+                event.putInt("attempt_num", attemptNum);
+            if (score > 0)
+                event.putInt("score", score);
         }
         synchronized (waitingQueue) {
             Gdx.app.debug(TAG, "Queuing progression event");
@@ -388,6 +365,7 @@ public class GameAnalytics {
 
     /**
      * submits an error event
+     *
      * @param severity
      * @param message
      */
@@ -494,7 +472,8 @@ public class GameAnalytics {
                             }
                         }, 1, 1);
                 } else
-                    Gdx.app.error(TAG, "Connection attempt failed: " + httpResponse.getStatus().getStatusCode() + " " + resultAsString);
+                    Gdx.app.error(TAG, "Connection attempt failed: " + httpResponse.getStatus().getStatusCode() + " "
+                            + resultAsString);
             }
 
             @Override

@@ -85,7 +85,7 @@ public class GameAnalyticsTest {
         //Progression events
         ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Start, "World1", "", "");
         ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Fail, "World1", "Level2", "");
-        ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Complete, "World2", "Level1", "Arena2", 200);
+        ga.submitProgressionEvent(GameAnalytics.ProgressionStatus.Complete, "World2", "Level1", "Arena2", 200, 1);
 
         //Resource events
         //CreateResourceEvent(de.golfgl.gdxgameanalytics.GameAnalytics.ResourceFlowType.Sink, "gold", "Weapon", "Frostmourne", 10000);
