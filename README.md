@@ -73,7 +73,8 @@ Initialize GameAnalytics client in your game's create() method:
 
 Don't forget to add calls to `stopSession()` and `startSession()` in your game's `pause()` and `resume()` methods.
 
-On Android, you can use the convinience class AndroidGameAnalytics which sets up platform, version and device information for you.
+On Android, you can use the convinience class `AndroidGameAnalytics` which sets up platform, version and device information for you. If you want to use GA for crash reporting,
+call its `registerUncaughtExceptionHandler()` method.
 
 Submit events with the public `submit...` methods.
 

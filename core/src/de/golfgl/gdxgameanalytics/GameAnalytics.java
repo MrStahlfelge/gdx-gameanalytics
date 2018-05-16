@@ -373,6 +373,9 @@ public class GameAnalytics {
         if (!isInitialized())
             return;
 
+        if (message.length() > 8000)
+            message = message.substring(0, 8000);
+
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "error");
         event.put("severity", getSeverityString(severity));
