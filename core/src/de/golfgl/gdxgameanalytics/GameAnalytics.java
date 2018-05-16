@@ -498,6 +498,14 @@ public class GameAnalytics {
         return connectionInitialized;
     }
 
+    /**
+     * @return current time on server. Only valid after successful initialization, so check {@link #isInitialized()}
+     * before trusting this value
+     */
+    public long getCurrentServerTime() {
+        return TimeUtils.millis() + timeStampDiscrepancy;
+    }
+
     public void setGameKey(String gamekey) {
         this.game_key = gamekey;
     }
@@ -637,7 +645,7 @@ public class GameAnalytics {
 
         public AnnotatedEvent() {
             //this is stored
-            keyValues.put("client_ts", (Long) (TimeUtils.millis() + timeStampDiscrepancy) / 1000L);
+            keyValues.put("client_ts", (Long) getCurrentServerTime() / 1000L);
             this.sessionId = session_id;
             this.sessionNum = session_num;
         }

@@ -11,6 +11,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.Date;
+
 /**
  * Created by Benjamin Schulte on 05.05.2018.
  */
@@ -72,6 +74,8 @@ public class GameAnalyticsTest {
 
         Thread.sleep(300);
         Assert.assertTrue(ga.isInitialized());
+
+        Gdx.app.log("Test", "Correct time: " + new Date(ga.getCurrentServerTime()).toString());
 
         //Design events
         ga.submitDesignEvent("kill:robot:blue");
