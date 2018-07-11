@@ -119,6 +119,17 @@ public class GameAnalytics {
         }
     }
 
+    private int loadAndIncrementTransactionNum() {
+        if (prefs == null)
+            return 0;
+
+        int transactionNum = prefs.getInteger("ga_transactionnum", 0);
+        transactionNum++;
+        prefs.putInteger("ga_transactionnum", transactionNum);
+        prefs.flush();
+        return transactionNum;
+    }
+
     /**
      * gets called every second by pingtask
      */
@@ -250,41 +261,24 @@ public class GameAnalytics {
         }
     }
 
-    private void createGenericBusinessEvent(String event_id, int amount, String currency, int transaction_num) {
+    /**
+     * Submits a payment transaction to GameAnalytics
+     *
+     * @param itemType category for items
+     * @param itemId identifier for what has been purchased
+     * @param amount in cents
+     * @param currency see http://openexchangerates.org/currencies.json
+     */
+    public void submitBusinessEvent(String itemType, String itemId, int amount, String currency) {
         if (!isInitialized())
             return;
 
         AnnotatedEvent event = new AnnotatedEvent();
         event.put("category", "business");
-        event.put("event_id", event_id);
+        event.put("event_id", itemType + ":" + itemId);
         event.putInt("amount", amount);
         event.put("currency", currency);
-        event.putInt("transaction_num", transaction_num);
-        synchronized (waitingQueue) {
-            Gdx.app.debug(TAG, "Queuing business event");
-            addToWaitingQueue(event);
-        }
-    }
-
-    private void createGenericBusinessEventGoogle(String event_id, int amount, String currency, int
-            transaction_num, String cart_type, String receipt, String signature) {
-        if (!isInitialized())
-            return;
-
-        AnnotatedEvent event = new AnnotatedEvent();
-        event.put("category", "business");
-        event.put("event_id", event_id);
-        event.putInt("amount", amount);
-        event.put("currency", currency);
-        event.putInt("transaction_num", transaction_num);
-        event.put("cart_type", cart_type);
-
-        // FIXME createGenericBusinessEventGoogle
-        //receipt
-        //JSONObject receipt_info = new JSONObject();
-        //receipt_info.put("receipt", receipt);
-        //receipt_info.put("signature", signature);
-        //event.put("receipt_info", receipt_info);
+        event.putInt("transaction_num", loadAndIncrementTransactionNum());
         synchronized (waitingQueue) {
             Gdx.app.debug(TAG, "Queuing business event");
             addToWaitingQueue(event);

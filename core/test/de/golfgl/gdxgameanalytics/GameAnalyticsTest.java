@@ -98,6 +98,9 @@ public class GameAnalyticsTest {
         //Error event
         ga.submitErrorEvent(GameAnalytics.ErrorType.error, "Ohohoh");
 
+        // Transaction
+        ga.submitBusinessEvent("type", "item", 100, "USD");
+
         Thread.sleep(1000); // give the HTTP request some time - this is needed just for Unit Tests
 
         //Finally close session by sending session_end event
