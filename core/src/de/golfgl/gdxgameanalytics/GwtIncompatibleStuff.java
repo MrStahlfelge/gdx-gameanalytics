@@ -67,7 +67,7 @@ public class GwtIncompatibleStuff {
      *
      * @return header for authentication
      */
-    protected static String setHttpRequestContent(Net.HttpRequest request, String content, String secretKey) {
+    public static String setHttpRequestContent(Net.HttpRequest request, String content, String secretKey) {
         byte[] compressedContent = null;
         String hash;
 
