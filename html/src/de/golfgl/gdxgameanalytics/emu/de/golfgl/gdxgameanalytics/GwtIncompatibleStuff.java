@@ -33,4 +33,8 @@ public class GwtIncompatibleStuff {
         request.setContent(content);
         return hash;
     }
+
+    public static byte[] compress(String paramString) {
+        throw new UnsupportedOperationException("Not supported on GWT");
+    }
 }
