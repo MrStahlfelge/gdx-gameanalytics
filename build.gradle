@@ -59,7 +59,6 @@ project(":android") {
 
     dependencies {
         compile project(':core')
-        compile project(':java')
         compile "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
 
     }
@@ -96,28 +95,6 @@ project(":core") {
 }
 
 
-
-
-project(":java") {
-    apply plugin: 'java'
-
-    apply from: '../publish.gradle'
-
-    configurations {
-        custom
-        compile.extendsFrom custom
-    }
-
-    eclipse {
-        project {
-            name = appName + "-java"
-        }
-    }
-
-    dependencies {
-        compile project(':core')
-    }
-}
 
 
 project(":html") {
