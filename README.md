@@ -6,7 +6,7 @@ Checkout gameanalytics.com for information about their service.
 
 ## Why you should use this implementation instead of official implementations?
 
-This implementation works without changes on Android, Desktop and GWT. The official Android implementation needs Play
+This implementation works without changes on Android, Desktop, iOS/RoboVM and GWT. The official Android implementation needs Play
 Services to work, which are not available on Amazon devices and bloat your apk file.
 
 Besides, this implementation does not send any identifiable user data. For returning user recognition, a random UUID specific for your game is generated and used.
@@ -35,6 +35,11 @@ HTML:
     compile "de.golfgl.gdxgameanalytics:gdx-gameanalytics-core:$gaVersion:sources"
     compile "de.golfgl.gdxgameanalytics:gdx-gameanalytics-html:$gaVersion"
     compile "de.golfgl.gdxgameanalytics:gdx-gameanalytics-html:$gaVersion:sources"
+
+iOS-RoboVM:
+
+    compile "de.golfgl.gdxgameanalytics:gdx-gameanalytics-ios:$gaVersion"
+
 
 ### Building from source
 To build from source, clone or download this repository, then open it in Android Studio. Perform the following command to compile and upload the library in your local repository:
@@ -74,7 +79,7 @@ Initialize GameAnalytics client in your game's create() method:
 Don't forget to add calls to `stopSession()` and `startSession()` in your game's `pause()` and `resume()` methods.
 
 On Android, you can use the convinience class `AndroidGameAnalytics` which sets up platform, version and device information for you. If you want to use GA for crash reporting,
-call its `registerUncaughtExceptionHandler()` method.
+call its `registerUncaughtExceptionHandler()` method. The same applies to iOS/RoboVM with `IosGameAnalytics` class.
 
 Submit events with the public `submit...` methods.
 

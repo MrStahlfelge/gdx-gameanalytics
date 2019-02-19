@@ -1,0 +1,5 @@
+sourceSets.main.java.srcDirs = [ "src/" ]
+
+ext {
+    ARTIFACTID = 'gdx-gameanalytics-ios'
+}
