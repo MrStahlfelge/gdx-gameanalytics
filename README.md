@@ -18,7 +18,7 @@ This project is published to the Sonatype Maven repository. You can integrate th
 Define the version of this API right after the gdxVersion:
 
     gdxVersion = '1.9.6' //or another gdx version you use
-    gaVersion = '0.1.2'
+    gaVersion = '0.1.3'
 
 Then add the needed dependencies to each subproject:
 
@@ -83,10 +83,9 @@ call its `registerUncaughtExceptionHandler()` method. The same applies to iOS/Ro
 
 Submit events with the public `submit...` methods.
 
-## Updates & News
-Follow me to receive release updates about this
+### News & Community
 
-https://twitter.com/MrStahlfelge
+You can get help on the [libgdx discord](https://discord.gg/6pgDK9F).
 
 # License
 
