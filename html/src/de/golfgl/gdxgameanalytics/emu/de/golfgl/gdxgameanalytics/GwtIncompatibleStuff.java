@@ -37,4 +37,8 @@ public class GwtIncompatibleStuff {
     public static byte[] compress(String paramString) {
         throw new UnsupportedOperationException("Not supported on GWT");
     }
+
+    public static String getThrowableStacktraceAsString(Throwable e) {
+        return e.getMessage();
+    }
 }

@@ -6,9 +6,6 @@ import org.robovm.apple.foundation.NSDictionary;
 import org.robovm.apple.foundation.NSException;
 import org.robovm.apple.uikit.UIDevice;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
 public class IosGameAnalytics extends GameAnalytics {
 
     @Override
@@ -30,22 +27,15 @@ public class IosGameAnalytics extends GameAnalytics {
     public void registerUncaughtExceptionHandler() {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             public void uncaughtException(Thread t, Throwable e) {
-                String exceptionAsString = "(no stacktrace)";
+                String exceptionAsString = null;
                 try {
-                    StringWriter sw = new StringWriter();
-                    e.printStackTrace(new PrintWriter(sw));
-                    exceptionAsString = sw.toString();
-                    submitErrorEvent(ErrorType.error, exceptionAsString);
-                    flushQueueImmediately();
-
-                    for (int waitTime = 0; flushingQueue && waitTime < 10; ++waitTime) {
-                        Thread.sleep(100L);
-                    }
+                    exceptionAsString = sendThrowableAsErrorEventSync(e);
                 } catch (Throwable throwable) {
                     // do nothing
                 } finally {
                     // crash the app in iOS
-                    NSException exception = new NSException(e.getClass().getName(), exceptionAsString, new NSDictionary());
+                    NSException exception = new NSException(e.getClass().getName(), exceptionAsString != null ? exceptionAsString
+                            : "(no stacktrace)", new NSDictionary());
                     exception.raise();
                 }
 

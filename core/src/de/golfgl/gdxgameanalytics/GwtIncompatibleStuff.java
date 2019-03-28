@@ -9,6 +9,8 @@ import com.badlogic.gdx.utils.SharedLibraryLoader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
@@ -101,5 +103,11 @@ public class GwtIncompatibleStuff {
         byte[] bytes = byteArrayOutputStream.toByteArray();
         byteArrayOutputStream.close();
         return bytes;
+    }
+
+    public static String getThrowableStacktraceAsString(Throwable e) {
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
     }
 }

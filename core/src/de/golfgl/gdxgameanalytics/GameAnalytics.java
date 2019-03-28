@@ -54,6 +54,7 @@ public class GameAnalytics {
     private String custom2;
     private String custom3;
     //SDK status - this is false when not initialized or initializing failed
+    private boolean connectionInitializing = false;
     private boolean connectionInitialized = false;
     private int nextQueueFlushInSeconds = 0;
     private Queue<AnnotatedEvent> waitingQueue = new Queue<AnnotatedEvent>();
@@ -265,8 +266,8 @@ public class GameAnalytics {
      * Submits a payment transaction to GameAnalytics
      *
      * @param itemType category for items
-     * @param itemId identifier for what has been purchased
-     * @param amount in cents
+     * @param itemId   identifier for what has been purchased
+     * @param amount   in cents
      * @param currency see http://openexchangerates.org/currencies.json
      */
     public void submitBusinessEvent(String itemType, String itemId, int amount, String currency) {
@@ -379,6 +380,38 @@ public class GameAnalytics {
         }
     }
 
+
+    /**
+     * submits a throwable immediatly and blocks the thread until it is sent
+     * (with a max wait time of three seconds)
+     *
+     * @param e Exception
+     * @return Stacktrace as a string
+     * @throws InterruptedException
+     */
+    protected String sendThrowableAsErrorEventSync(Throwable e) throws InterruptedException {
+        String exceptionAsString = GwtIncompatibleStuff.getThrowableStacktraceAsString(e);
+
+        int waitTime = 0;
+        // let's wait three seconds in case initializing is not yet done
+        while (connectionInitializing && waitTime < 30) {
+            Thread.sleep(100);
+            waitTime++;
+        }
+
+        submitErrorEvent(ErrorType.error, exceptionAsString);
+        flushQueueImmediately();
+
+        waitTime = 0;
+        // let's wait three seconds in case sending is slow
+        while (flushingQueue && waitTime < 30) {
+            Thread.sleep(100);
+            waitTime++;
+        }
+
+        return exceptionAsString;
+    }
+
     private String getSeverityString(ErrorType severity) {
         switch (severity) {
             case info:
@@ -430,6 +463,7 @@ public class GameAnalytics {
         final Net.HttpRequest request = createHttpRequest(url + game_key + "/init", event);
 
         connectionInitialized = false;
+        connectionInitializing = true;
         timeStampDiscrepancy = 0;
 
         //Execute and read response
@@ -437,6 +471,7 @@ public class GameAnalytics {
             @Override
             public void handleHttpResponse(Net.HttpResponse httpResponse) {
                 connectionInitialized = httpResponse.getStatus().getStatusCode() == 200;
+                connectionInitializing = false;
                 String resultAsString = httpResponse.getResultAsString();
 
                 if (connectionInitialized) {
@@ -480,6 +515,7 @@ public class GameAnalytics {
             @Override
             public void cancelled() {
                 connectionInitialized = false;
+                connectionInitializing = false;
                 Gdx.app.error(TAG, "Could not connect to GameAnalytics - suspended");
             }
         });

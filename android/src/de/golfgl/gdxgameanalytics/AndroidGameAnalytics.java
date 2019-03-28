@@ -2,9 +2,6 @@ package de.golfgl.gdxgameanalytics;
 
 import android.os.Build;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
 /**
  * Use this subclass on Android to set platform, version, device and manufacturer automatically
  * <p>
@@ -43,19 +40,7 @@ public class AndroidGameAnalytics extends GameAnalytics {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
                 try {
-                    StringWriter sw = new StringWriter();
-                    e.printStackTrace(new PrintWriter(sw));
-                    String exceptionAsString = sw.toString();
-
-                    submitErrorEvent(ErrorType.error, exceptionAsString);
-                    flushQueueImmediately();
-
-                    int waitTime = 0;
-                    // let's wait a second in case sending is slow
-                    while (flushingQueue && waitTime < 10) {
-                        Thread.sleep(100);
-                        waitTime++;
-                    }
+                    sendThrowableAsErrorEventSync(e);
 
                 } catch (Throwable ignore) {
                     // ignore
