@@ -83,7 +83,7 @@ call its `registerUncaughtExceptionHandler()` method. The same applies to iOS/Ro
 
 Submit events with the public `submit...` methods.
 
-### News & Community
+## News & Community
 
 You can get help on the [libgdx discord](https://discord.gg/6pgDK9F).
 
