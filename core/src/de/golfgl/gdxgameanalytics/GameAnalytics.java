@@ -394,7 +394,7 @@ public class GameAnalytics {
 
         int waitTime = 0;
         // let's wait three seconds in case initializing is not yet done
-        while (connectionInitializing && waitTime < 30) {
+        while ((connectionInitializing || flushingQueue) && waitTime < 30) {
             Thread.sleep(100);
             waitTime++;
         }
