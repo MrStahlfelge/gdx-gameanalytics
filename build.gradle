@@ -1,7 +1,6 @@
 ext {
     GROUPID = 'de.golfgl.gdxgameanalytics'
     VERSION = '0.1.4'
-
 }
 
 buildscript {
@@ -25,12 +24,12 @@ allprojects {
 
     ext {
         minSdk = 15
-        targetSdk = 25
-        compileSdk = 25
-        buildTools = '25.0.2'
+        targetSdk = 28
+        compileSdk = 28
+        buildTools = '28.0.3'
 
         appName = 'gdx-gameanalytics'
-        gdxVersion = '1.9.5'
+        gdxVersion = '1.9.9'
         roboVMVersion = '2.3.5'
     }
 
@@ -94,9 +93,6 @@ project(":core") {
     }
 }
 
-
-
-
 project(":html") {
     apply plugin: 'java'
 
@@ -124,7 +120,6 @@ project(":html") {
     }
 }
 
-
 project(":ios") {
     apply plugin: 'java'
     apply plugin: 'robovm'
@@ -150,5 +145,26 @@ project(":ios") {
         compile "com.mobidevelop.robovm:robovm-cocoatouch:${roboVMVersion}"
         compile "com.badlogicgames.gdx:gdx-backend-robovm:$gdxVersion"
 
+    }
+}
+
+project(":desktop") {
+    apply plugin: 'java'
+
+    apply from: '../publish.gradle'
+
+    configurations {
+        custom
+        compile.extendsFrom custom
+    }
+
+    eclipse {
+        project {
+            name = appName + "-desktop"
+        }
+    }
+
+    dependencies {
+        compile project(':core')
     }
 }

@@ -43,7 +43,7 @@ public class GameAnalytics {
     private String platform = null;
     private String os_version = null;
     private String device = "unknown";
-    private String manufacturer = "unkown";
+    private String manufacturer = "unknown";
     //game information
     private String build;
     //user information
