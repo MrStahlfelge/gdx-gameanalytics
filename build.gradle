@@ -94,9 +94,6 @@ project(":core") {
     }
 }
 
-
-
-
 project(":html") {
     apply plugin: 'java'
 
@@ -124,7 +121,6 @@ project(":html") {
     }
 }
 
-
 project(":ios") {
     apply plugin: 'java'
     apply plugin: 'robovm'
@@ -150,5 +146,26 @@ project(":ios") {
         compile "com.mobidevelop.robovm:robovm-cocoatouch:${roboVMVersion}"
         compile "com.badlogicgames.gdx:gdx-backend-robovm:$gdxVersion"
 
+    }
+}
+
+project(":desktop") {
+    apply plugin: 'java'
+
+    apply from: '../publish.gradle'
+
+    configurations {
+        custom
+        compile.extendsFrom custom
+    }
+
+    eclipse {
+        project {
+            name = appName + "-desktop"
+        }
+    }
+
+    dependencies {
+        compile project(':core')
     }
 }

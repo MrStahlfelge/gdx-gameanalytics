@@ -25,6 +25,11 @@ Then add the needed dependencies to each subproject:
 Core:
 
     compile "de.golfgl.gdxgameanalytics:gdx-gameanalytics-core:$gaVersion"
+    
+        
+Desktop:
+    
+    compile "de.golfgl.gdxgameanalytics:gdx-gameanalytics-desktop:$gaVersion"
 
 Android:
 
