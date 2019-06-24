@@ -24,12 +24,12 @@ allprojects {
 
     ext {
         minSdk = 15
-        targetSdk = 28
-        compileSdk = 28
-        buildTools = '28.0.3'
+        targetSdk = 25
+        compileSdk = 25
+        buildTools = '25.0.2'
 
         appName = 'gdx-gameanalytics'
-        gdxVersion = '1.9.9'
+        gdxVersion = '1.9.5'
         roboVMVersion = '2.3.5'
     }
 
