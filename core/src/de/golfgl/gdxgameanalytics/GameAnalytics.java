@@ -20,7 +20,7 @@ import java.util.Map;
  * Created by Benjamin Schulte on 05.05.2018 based up on example implementation
  * https://s3.amazonaws.com/download.gameanalytics.com/examples/GameAnalytics+REST+API+example.java
  * <p>
- * (That's the reason why this code looks like made by a server dev - it acutally is. Improvements welcome)
+ * (That's the reason why this code looks like made by a server dev - it actually is. Improvements welcome)
  */
 
 public class GameAnalytics {
@@ -57,8 +57,8 @@ public class GameAnalytics {
     private boolean connectionInitializing = false;
     private boolean connectionInitialized = false;
     private int nextQueueFlushInSeconds = 0;
-    private Queue<AnnotatedEvent> waitingQueue = new Queue<AnnotatedEvent>();
-    private Queue<AnnotatedEvent> sendingQueue = new Queue<>();
+    private final Queue<AnnotatedEvent> waitingQueue = new Queue<>();
+    private final Queue<AnnotatedEvent> sendingQueue = new Queue<>();
     private int failedFlushAttempts;
     private long timeStampDiscrepancy;
     private long sessionStartTimestamp;
@@ -331,7 +331,7 @@ public class GameAnalytics {
         }
     }
 
-    private void createResourceEvent(ResourceFlowType flowType, String virtualCurrency, String itemType,
+    public void submitResourceEvent(ResourceFlowType flowType, String virtualCurrency, String itemType,
                                      String itemId, float amount) {
         if (!isInitialized())
             return;
@@ -351,7 +351,7 @@ public class GameAnalytics {
     private String getFlowTypeString(ResourceFlowType flowType) {
         switch (flowType) {
             case Sink:
-                return "Skink";
+                return "Sink";
             default:
                 return "Source";
         }
@@ -382,7 +382,7 @@ public class GameAnalytics {
 
 
     /**
-     * submits a throwable immediatly and blocks the thread until it is sent
+     * submits a throwable immediately and blocks the thread until it is sent
      * (with a max wait time of three seconds)
      *
      * @param e Exception
@@ -647,8 +647,9 @@ public class GameAnalytics {
     public enum ErrorType {debug, info, warning, error, critical}
 
     /**
-     * Gameanalytics does not allow free definition of platforms. I did not find a documented list of supported
-     * platforms, but these ones work
+     * Gameanalytics does not allow free definition of platforms.
+     *
+     * See https://gameanalytics.com/docs/item/rest-api-doc#default-annotations-shared for all acceptable platforms
      */
     public enum Platform {
         Windows, Linux, Android, iOS, WebGL, MacOS
