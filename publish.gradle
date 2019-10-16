@@ -60,7 +60,7 @@ afterEvaluate { project ->
 
                 pom.groupId = getGroupId()
                 pom.version = getVersion()
-				pom.artifactId = getArtifactId()
+                pom.artifactId = getArtifactId()
 
 
                 if (isLocalBuild()) {
@@ -118,19 +118,19 @@ afterEvaluate { project ->
     }
 
     task libraryJar(type: Jar, dependsOn:classes) {
-        from sourceSets.main.output.classesDir
+        from sourceSets.main.output.classesDirs
         from configurations.custom.collect { it.isDirectory() ? it : zipTree(it) }
-        classifier = 'library'
+        archiveClassifier = 'library'
     }
 
     task sourcesJar(type: Jar, dependsOn:classes) {
         from sourceSets.main.allSource
-        classifier = 'sources'
+        archiveClassifier = 'sources'
     }
 
     task javadocJar(type: Jar, dependsOn:javadoc) {
         from javadoc.destinationDir
-        classifier = 'javadoc'
+        archiveClassifier = 'javadoc'
     }
 
     artifacts {
