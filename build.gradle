@@ -7,15 +7,14 @@ ext {
 buildscript {
     repositories {
         mavenCentral()
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        google()
         maven { url 'https://plugins.gradle.org/m2/' }
-        maven { url uri(System.getenv("INTEL_MULTI_OS_ENGINE_HOME") + "/gradle") }
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
     }
     dependencies {
         classpath 'de.richsource.gradle.plugins:gwt-gradle-plugin:0.6'
-        classpath 'com.android.tools.build:gradle:2.3.0'
-        classpath 'com.mobidevelop.robovm:robovm-gradle-plugin:2.3.5'
-        classpath 'org.multi-os-engine:moe-gradle:1.2.3'
+        classpath "com.android.tools.build:gradle:3.5.4"
+        classpath 'com.mobidevelop.robovm:robovm-gradle-plugin:2.3.12'
     }
 }
 
@@ -25,9 +24,9 @@ allprojects {
 
     ext {
         minSdk = 15
-        targetSdk = 25
-        compileSdk = 25
-        buildTools = '25.0.2'
+        targetSdk = 29
+        compileSdk = 29
+        buildTools = '29.0.3'
 
         appName = 'gdx-gameanalytics'
         gdxVersion = '1.9.5'
@@ -37,6 +36,8 @@ allprojects {
     repositories {
         mavenCentral()
         mavenLocal()
+        google()
+        maven { url 'https://plugins.gradle.org/m2/' }
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
     }

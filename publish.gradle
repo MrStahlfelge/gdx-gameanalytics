@@ -118,7 +118,7 @@ afterEvaluate { project ->
     }
 
     task libraryJar(type: Jar, dependsOn:classes) {
-        from sourceSets.main.output.classesDir
+        from sourceSets.main.output.classesDirs
         from configurations.custom.collect { it.isDirectory() ? it : zipTree(it) }
         classifier = 'library'
     }
