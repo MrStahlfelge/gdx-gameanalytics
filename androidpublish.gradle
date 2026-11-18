@@ -64,17 +64,26 @@ uploadArchives {
 
             if (isLocalBuild()) {
                 repository(url: getLocalRepositoryUrl())
-            } else {
-                if (isReleaseBuild()) {
-                    repository(url: getReleaseRepositoryUrl()) {
-                        authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
-                    }
+            }
+            else if (isReleaseBuild()) {
+                repository(url: getReleaseRepositoryUrl()) {
+                    authentication(
+                            userName: getRepositoryUsername(),
+                            password: getRepositoryPassword()
+                    )
                 }
-                if (isSnapshotBuild()) {
-                    snapshotRepository(url: getSnapshotRepositoryUrl()) {
-                        authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
-                    }
+            }
+            else if (isSnapshotBuild()) {
+                snapshotRepository(url: getSnapshotRepositoryUrl()) {
+                    authentication(
+                            userName: getRepositoryUsername(),
+                            password: getRepositoryPassword()
+                    )
                 }
+            }
+            else {
+                // JitPack build
+                repository(url: "file://${buildDir}/jitpack-repository")
             }
 
 
