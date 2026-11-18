@@ -33,4 +33,18 @@ ext {
 	ARTIFACTID = 'gdx-gameanalytics-android'
 }
 
-apply from : '../androidpublish.gradle'
+apply plugin: 'maven-publish'
+
+afterEvaluate {
+	publishing {
+		publications {
+			release(MavenPublication) {
+				groupId = 'com.github.BucketOfBroccoli.gdx-gameanalytics'
+				artifactId = 'gdx-gameanalytics-android'
+				version = project.version
+
+				artifact("$buildDir/outputs/aar/${project.name}-release.aar")
+			}
+		}
+	}
+}
