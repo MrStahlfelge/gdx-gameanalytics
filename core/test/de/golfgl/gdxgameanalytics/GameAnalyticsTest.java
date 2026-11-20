@@ -71,9 +71,12 @@ public class GameAnalyticsTest {
         ga.setGameBuildNumber("1");
 
         ga.startSession();
-
-        Thread.sleep(300);
-        Assert.assertTrue(ga.isInitialized());
+        
+        long timeout = System.currentTimeMillis() + 10000;
+        while (!ga.isInitialized() && System.currentTimeMillis() < timeout) {
+            Thread.sleep(100);
+        }
+        Assert.assertTrue("GameAnalytics failed to initialize within 10 seconds", ga.isInitialized());
 
         Gdx.app.log("Test", "Correct time: " + new Date(ga.getCurrentServerTime()).toString());
 
@@ -100,6 +103,27 @@ public class GameAnalyticsTest {
 
         // Transaction
         ga.submitBusinessEvent("type", "item", 100, "USD");
+
+
+        // Ads
+        // Basic ad events
+        ga.submitAdEvent(GameAnalytics.AdAction.Show, GameAnalytics.AdType.Interstitial, "admob", "end_of_level");
+        ga.submitAdEvent(GameAnalytics.AdAction.Clicked, GameAnalytics.AdType.Banner, "admob", "main_menu");
+        ga.submitAdEvent(GameAnalytics.AdAction.RewardReceived, GameAnalytics.AdType.RewardedVideo, "admob", "double_coins");
+
+        // Ad event with duration (milliseconds)
+        ga.submitAdEvent(GameAnalytics.AdAction.Show, GameAnalytics.AdType.RewardedVideo, "admob", "rewarded_video", 5000L);
+
+        // Full ad event with all optional parameters
+        ga.submitAdEvent(
+                GameAnalytics.AdAction.FailedShow,
+                GameAnalytics.AdType.Video,
+                "admob",
+                "bonus_video",
+                GameAnalytics.AdFailShowReason.InternalError,
+                2500L,
+                true
+        );
 
         Thread.sleep(1000); // give the HTTP request some time - this is needed just for Unit Tests
 

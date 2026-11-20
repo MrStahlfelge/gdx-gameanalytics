@@ -24,7 +24,7 @@ import java.util.Map;
  */
 
 public class GameAnalytics {
-    protected static final String URL_SANDBOX = "http://sandbox-api.gameanalytics.com/v2/";
+    protected static final String URL_SANDBOX = "https://sandbox-api.gameanalytics.com/v2/";
     protected static final String TAG = "Gameanalytics";
     private final static String sdk_version = "rest api v2";
     private static final int FLUSH_QUEUE_INTERVAL = 20;
@@ -427,6 +427,60 @@ public class GameAnalytics {
         }
     }
 
+
+    public void submitAdEvent(AdAction adAction, AdType adType,
+                              String adSdkName, String adPlacement) {
+        submitAdEvent(adAction, adType, adSdkName, adPlacement, null, null, null);
+    }
+
+    public void submitAdEvent(AdAction adAction, AdType adType,
+                              String adSdkName, String adPlacement,
+                              long duration) {
+        submitAdEvent(adAction, adType, adSdkName, adPlacement, null, duration, null);
+    }
+
+    public void submitAdEvent(AdAction adAction, AdType adType,
+                              String adSdkName, String adPlacement,
+                              AdFailShowReason failShowReason,
+                              Long duration, Boolean adFirst) {
+        if (!isInitialized())
+            return;
+
+        if (adAction == null || adType == null)
+            throw new IllegalArgumentException("AdAction and AdType cannot be null.");
+
+        if (adSdkName == null || adPlacement == null)
+            throw new IllegalArgumentException("Ad SDK name and placement cannot be null.");
+
+        if (failShowReason != null && adAction != AdAction.FailedShow)
+            throw new IllegalArgumentException("A failure reason can only be specified for FailedShow events.");
+
+        if (duration != null && duration < 0)
+            throw new IllegalArgumentException("Ad duration cannot be negative.");
+
+        AnnotatedEvent event = new AnnotatedEvent();
+        event.put("category", "ads");
+        event.put("ad_action", getAdActionString(adAction));
+        event.put("ad_type", getAdTypeString(adType));
+        event.put("ad_sdk_name", adSdkName);
+        event.put("ad_placement", adPlacement);
+
+        if (failShowReason != null)
+            event.put("ad_fail_show_reason", getAdFailShowReasonString(failShowReason));
+
+        if (duration != null)
+            event.putLong("ad_duration", duration);
+
+        if (adFirst != null)
+            event.putBoolean("ad_first", adFirst);
+
+        synchronized (waitingQueue) {
+            Gdx.app.debug(TAG, "Queuing ad event");
+            addToWaitingQueue(event);
+        }
+    }
+
+
     /**
      * closes the ongoing session. Call this on your game's pause() method
      * <p>
@@ -646,6 +700,65 @@ public class GameAnalytics {
 
     public enum ErrorType {debug, info, warning, error, critical}
 
+    public enum AdAction {Clicked, Show, FailedShow, RewardReceived}
+
+    public enum AdType {Video, RewardedVideo, Playable, Interstitial, OfferWall, Banner}
+
+    public enum AdFailShowReason {Unknown, Offline, NoFill, InternalError, InvalidRequest, UnableToPrecache}
+
+    private String getAdActionString(AdAction adAction) {
+        switch (adAction) {
+            case Clicked:
+                return "clicked";
+            case Show:
+                return "show";
+            case FailedShow:
+                return "failed_show";
+            case RewardReceived:
+                return "reward_received";
+            default:
+                throw new IllegalArgumentException("Unknown AdAction: " + adAction);
+        }
+    }
+
+    private String getAdTypeString(AdType adType) {
+        switch (adType) {
+            case Video:
+                return "video";
+            case RewardedVideo:
+                return "rewarded_video";
+            case Playable:
+                return "playable";
+            case Interstitial:
+                return "interstitial";
+            case OfferWall:
+                return "offer_wall";
+            case Banner:
+                return "banner";
+            default:
+                throw new IllegalArgumentException("Unknown AdType: " + adType);
+        }
+    }
+
+    private String getAdFailShowReasonString(AdFailShowReason adFailShowReason) {
+        switch (adFailShowReason) {
+            case Unknown:
+                return "unknown";
+            case Offline:
+                return "offline";
+            case NoFill:
+                return "no_fill";
+            case InternalError:
+                return "internal_error";
+            case InvalidRequest:
+                return "invalid_request";
+            case UnableToPrecache:
+                return "unable_to_precache";
+            default:
+                throw new IllegalArgumentException("Unknown AdFailShowReason: " + adFailShowReason);
+        }
+    }
+
     /**
      * Gameanalytics does not allow free definition of platforms.
      *
@@ -721,6 +834,14 @@ public class GameAnalytics {
         }
 
         public void putFloat(String name, float value) {
+            keyValues.put(name, value);
+        }
+
+        public void putLong(String name, long value) {
+            keyValues.put(name, value);
+        }
+
+        public void putBoolean(String name, boolean value) {
             keyValues.put(name, value);
         }
     }
